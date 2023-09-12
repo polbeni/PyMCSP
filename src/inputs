@@ -1,0 +1,22 @@
+# Pol Benítez Colominas, Universitat Politècnica de Catalunya
+# September 2023 - September 2023
+# Version 0.2
+
+# Inputs file
+
+# Adjust the values of the variables
+# IMPORTANT: Do not change the structure of this file and let an space between
+# the variable name and equal sign, and between equal sign and the value
+
+dimension = 3                  # dimension of the material; 2 or 3
+atoms = ['Ag','Br','S']        # name of the atoms in the material
+stoichiometry = [3,1,1]        # stoichiometry of the materials, has to have the same order as atoms
+num_max_atoms = 20             # maximum number of atoms that we want in the unit cell
+num_same_phase = 5             # number of generated structures for the same space group and stoichiometry
+print_terminal_outputs = True  # activate (True) or deactivate (False) the information provided via terminal
+save_all_generations = True    # if False it will only be saved the final found structures
+structure_file = poscar        # type of structure file for the generated phases (for now just poscar)
+prec_group_det = 1e-3          # precision to determine phase group with spglib
+surviving_phases = 0.15        # fraction of phases that will be considered in the generations loop
+num_generations = 10           # number of generations
+max_disp = 0.6                 # length of maximum displacement for the distortion of the structure (in Angstroms)
