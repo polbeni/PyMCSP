@@ -306,16 +306,16 @@ if num_generations != 0:
             struc_previous_energy = float(line_previous_energy.split()[2])
             struc_actual_energy = float(line_actual_energy.split()[2])
 
-            if struc_previous_energy <= struc_actual_energy:
-                shutil.copy(f'structure_files/generation-{num_gen + 1:03d}/initial_structures/' + struc_file, 
-                            f'structure_files/generation-{num_gen + 1:03d}/final_structures')
-                
-                file_energy.write(line_previous_energy)
-            else:
+            if (struc_previous_energy >= struc_actual_energy) and (abs(struc_previous_energy - struc_actual_energy) >= 2e-4):
                 shutil.copy(f'structure_files/generation-{num_gen + 1:03d}/relaxed_structures/' + struc_file, 
                             f'structure_files/generation-{num_gen + 1:03d}/final_structures')
                 
                 file_energy.write(line_actual_energy)
+            else:
+                shutil.copy(f'structure_files/generation-{num_gen + 1:03d}/initial_structures/' + struc_file, 
+                            f'structure_files/generation-{num_gen + 1:03d}/final_structures')
+                
+                file_energy.write(line_previous_energy)
 
         file_energy.close()        
         previous_energy.close()
