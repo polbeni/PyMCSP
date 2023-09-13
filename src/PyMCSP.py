@@ -81,8 +81,16 @@ surviving_phases = float(variables[9])
 num_generations = int(variables[10])
 max_disp = float(variables[11])
 
+if print_terminal_outputs == True:
+    initial_message()
+
+    simulation_information(atoms, stoichiometry, num_max_atoms, num_generations)
+
 
 #### Generate the structures
+
+if print_terminal_outputs == True:
+    struc_gen_ini()
 
 max_atoms_condition = False
 
@@ -115,6 +123,9 @@ for num_phase_group in range(num_same_phase):
     
     num_phase = total_num_phase
 
+if print_terminal_outputs == True:
+    struc_gen_end()
+
 
 #### Relax the first structures
 
@@ -136,6 +147,9 @@ relaxer = Relaxer()
 phase_energy_array = np.zeros((num_structures,2))
 count = 0
 
+if print_terminal_outputs == True:
+    relax_ini()
+
 for num_struc in range(num_structures):
     initial_path = 'structure_files/initial_structures/generated_structures/POSCAR-' + "{:04d}".format(num_struc + 1)
     relaxed_path = 'structure_files/initial_structures/relaxed_structures/POSCAR-' + "{:04d}".format(num_struc + 1)
@@ -145,6 +159,9 @@ for num_struc in range(num_structures):
     
     phase_energy_array[count - 1,0] = int(count)
     phase_energy_array[count - 1,1] = relax_energy
+
+if print_terminal_outputs == True:
+    relax_end()
 
 sorted_indices = np.argsort(phase_energy_array[:,1])
 phase_energy_sorted = phase_energy_array[sorted_indices]
@@ -179,7 +196,14 @@ number_surv_struc = int(number_ini_struc*surviving_phases)
 
 if num_generations != 0:
 
+    if print_terminal_outputs == True:
+        gen_ini()
+
     for num_gen in range(num_generations):
+
+        if print_terminal_outputs == True:
+            gen_ini_actual(num_gen + 1)
+
         create_dir_generation(num_gen + 1)
 
         name_dir_initial_struc = {
@@ -234,6 +258,9 @@ if num_generations != 0:
         file_energy.write('#       POSCAR-num       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
         count = 1
 
+        if print_terminal_outputs == True:
+            relax_ini()
+
         for struc_file in name_selected_structures:
             path_dist_file = f'structure_files/generation-{num_gen + 1:03d}/distorsed_structures/' + struc_file
             path_relax_file = f'structure_files/generation-{num_gen + 1:03d}/relaxed_structures/' + struc_file
@@ -245,6 +272,9 @@ if num_generations != 0:
                             prec_group_det, count)
             
             count = count + 1
+
+        if print_terminal_outputs == True:
+            relax_end()
 
         file_energy.close()
 
@@ -291,7 +321,13 @@ if num_generations != 0:
         previous_energy.close()
         actual_energy.close()
 
+        if print_terminal_outputs == True:
+            gen_end_actual(num_gen + 1)
+
         num_gen = num_gen + 1
+
+    if print_terminal_outputs == True:
+        gen_end()
 
 if (save_all_generations == True) and (num_generations != 0):
     os.mkdir('structure_files/final_structures')
@@ -313,3 +349,6 @@ elif (save_all_generations == False) and (num_generations != 0):
                     'final_structures/energy_ranking.txt')
     
     shutil.rmtree('structure_files')
+
+if print_terminal_outputs == True:
+            final_message()
