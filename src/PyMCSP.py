@@ -177,121 +177,123 @@ for filename in files_in_dir:
 
 number_surv_struc = int(number_ini_struc*surviving_phases)
 
-for num_gen in range(num_generations):
-    create_dir_generation(num_gen + 1)
+if num_generations != 0:
 
-    name_dir_initial_struc = {
-        'initial': 'structure_files/initial_structures/relaxed_structures/',
-        'not_initial': f'structure_files/generation-{num_gen:03d}/final_structures'
-    }
+    for num_gen in range(num_generations):
+        create_dir_generation(num_gen + 1)
 
-    path_destination = f'structure_files/generation-{num_gen + 1:03d}/initial_structures/'
-    file_prefix = 'POSCAR-'
+        name_dir_initial_struc = {
+            'initial': 'structure_files/initial_structures/relaxed_structures/',
+            'not_initial': f'structure_files/generation-{num_gen:03d}/final_structures'
+        }
 
-    if  num_gen == 0:
-        path_initial_struc = name_dir_initial_struc['initial']
+        path_destination = f'structure_files/generation-{num_gen + 1:03d}/initial_structures/'
+        file_prefix = 'POSCAR-'
 
-        name_selected_structures = []
+        if  num_gen == 0:
+            path_initial_struc = name_dir_initial_struc['initial']
 
-        energy_file = open('structure_files/initial_structures/relaxed_structures/energy_ranking.txt', "r")
+            name_selected_structures = []
 
-        energy_file.readline()
+            energy_file = open('structure_files/initial_structures/relaxed_structures/energy_ranking.txt', "r")
 
-        for num_str in range(number_surv_struc):
-            actual_line = energy_file.readline()
+            energy_file.readline()
 
-            name_selected_structures.append(actual_line.split()[1])
-        
+            for num_str in range(number_surv_struc):
+                actual_line = energy_file.readline()
 
-        energy_file.close()
-        
-        for filename in name_selected_structures:
-            if filename.startswith(file_prefix):
-                source_file = os.path.join(path_initial_struc, filename)
-                destination_file = os.path.join(path_destination, filename)
-                shutil.copy(source_file, destination_file)
-
-    else:
-        path_initial_struc = name_dir_initial_struc['not_initial']
-
-        files_in_dir = os.listdir(path_initial_struc)
-
-        for filename in files_in_dir:
-            if filename.startswith(file_prefix):
-                source_file = os.path.join(path_initial_struc, filename)
-                destination_file = os.path.join(path_destination, filename)
-                shutil.copy(source_file, destination_file)
-
-    for struc_file in name_selected_structures:
-        path_struc_file = f'structure_files/generation-{num_gen + 1:03d}/initial_structures/' + struc_file
-        path_dist_file = f'structure_files/generation-{num_gen + 1:03d}/distorsed_structures/' + struc_file
-
-        structure_distortion(path_struc_file, max_disp, path_dist_file)
-
-    file_energy = open(f'structure_files/generation-{num_gen + 1:03d}/relaxed_structures/energy_ranking.txt', 'w')
-    file_energy.write('#       POSCAR-num       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
-    count = 1
-
-    for struc_file in name_selected_structures:
-        path_dist_file = f'structure_files/generation-{num_gen + 1:03d}/distorsed_structures/' + struc_file
-        path_relax_file = f'structure_files/generation-{num_gen + 1:03d}/relaxed_structures/' + struc_file
-
-        relaxed_energy = relax_structure_gen(relaxer, path_dist_file, path_relax_file,
-                                             print_terminal_outputs, structure_file)
-        
-        write_in_file_gen(file_energy, path_relax_file, struc_file, relaxed_energy, 
-                          prec_group_det, count)
-        
-        count = count + 1
-
-    file_energy.close()
-
-    path_previous_energy_file = {
-        'initial': 'structure_files/initial_structures/relaxed_structures/energy_ranking.txt',
-        'not_initial': f'structure_files/generation-{num_gen:03d}/relaxed_structures/energy_ranking.txt'
-    }
-
-    if num_gen == 0:
-        previous_energy_path = path_previous_energy_file['initial']
-    else:
-        previous_energy_path = path_previous_energy_file['not_initial']
-
-    actual_energy_path = f'structure_files/generation-{num_gen + 1:03d}/relaxed_structures/energy_ranking.txt'
-
-    previous_energy = open(previous_energy_path, "r")
-    previous_energy.readline()
-
-    actual_energy = open(actual_energy_path, "r")
-    actual_energy.readline()
-
-    file_energy = open(f'structure_files/generation-{num_gen + 1:03d}/final_structures/energy_ranking.txt', 'w')
-    file_energy.write('#       POSCAR-num       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
-
-    for struc_file in name_selected_structures:
-        line_previous_energy = previous_energy.readline()
-        line_actual_energy = actual_energy.readline()
-
-        struc_previous_energy = float(line_previous_energy.split()[2])
-        struc_actual_energy = float(line_actual_energy.split()[2])
-
-        if struc_previous_energy <= struc_actual_energy:
-            shutil.copy(f'structure_files/generation-{num_gen + 1:03d}/initial_structures/' + struc_file, 
-                        f'structure_files/generation-{num_gen + 1:03d}/final_structures')
+                name_selected_structures.append(actual_line.split()[1])
             
-            file_energy.write(line_previous_energy)
+
+            energy_file.close()
+            
+            for filename in name_selected_structures:
+                if filename.startswith(file_prefix):
+                    source_file = os.path.join(path_initial_struc, filename)
+                    destination_file = os.path.join(path_destination, filename)
+                    shutil.copy(source_file, destination_file)
+
         else:
-            shutil.copy(f'structure_files/generation-{num_gen + 1:03d}/relaxed_structures/' + struc_file, 
-                        f'structure_files/generation-{num_gen + 1:03d}/final_structures')
+            path_initial_struc = name_dir_initial_struc['not_initial']
+
+            files_in_dir = os.listdir(path_initial_struc)
+
+            for filename in files_in_dir:
+                if filename.startswith(file_prefix):
+                    source_file = os.path.join(path_initial_struc, filename)
+                    destination_file = os.path.join(path_destination, filename)
+                    shutil.copy(source_file, destination_file)
+
+        for struc_file in name_selected_structures:
+            path_struc_file = f'structure_files/generation-{num_gen + 1:03d}/initial_structures/' + struc_file
+            path_dist_file = f'structure_files/generation-{num_gen + 1:03d}/distorsed_structures/' + struc_file
+
+            structure_distortion(path_struc_file, max_disp, path_dist_file)
+
+        file_energy = open(f'structure_files/generation-{num_gen + 1:03d}/relaxed_structures/energy_ranking.txt', 'w')
+        file_energy.write('#       POSCAR-num       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
+        count = 1
+
+        for struc_file in name_selected_structures:
+            path_dist_file = f'structure_files/generation-{num_gen + 1:03d}/distorsed_structures/' + struc_file
+            path_relax_file = f'structure_files/generation-{num_gen + 1:03d}/relaxed_structures/' + struc_file
+
+            relaxed_energy = relax_structure_gen(relaxer, path_dist_file, path_relax_file,
+                                                print_terminal_outputs, structure_file)
             
-            file_energy.write(line_actual_energy)
+            write_in_file_gen(file_energy, path_relax_file, struc_file, relaxed_energy, 
+                            prec_group_det, count)
+            
+            count = count + 1
 
-    file_energy.close()        
-    previous_energy.close()
-    actual_energy.close()
+        file_energy.close()
 
-    num_gen = num_gen + 1
+        path_previous_energy_file = {
+            'initial': 'structure_files/initial_structures/relaxed_structures/energy_ranking.txt',
+            'not_initial': f'structure_files/generation-{num_gen:03d}/relaxed_structures/energy_ranking.txt'
+        }
 
-if save_all_generations == True:
+        if num_gen == 0:
+            previous_energy_path = path_previous_energy_file['initial']
+        else:
+            previous_energy_path = path_previous_energy_file['not_initial']
+
+        actual_energy_path = f'structure_files/generation-{num_gen + 1:03d}/relaxed_structures/energy_ranking.txt'
+
+        previous_energy = open(previous_energy_path, "r")
+        previous_energy.readline()
+
+        actual_energy = open(actual_energy_path, "r")
+        actual_energy.readline()
+
+        file_energy = open(f'structure_files/generation-{num_gen + 1:03d}/final_structures/energy_ranking.txt', 'w')
+        file_energy.write('#       POSCAR-num       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
+
+        for struc_file in name_selected_structures:
+            line_previous_energy = previous_energy.readline()
+            line_actual_energy = actual_energy.readline()
+
+            struc_previous_energy = float(line_previous_energy.split()[2])
+            struc_actual_energy = float(line_actual_energy.split()[2])
+
+            if struc_previous_energy <= struc_actual_energy:
+                shutil.copy(f'structure_files/generation-{num_gen + 1:03d}/initial_structures/' + struc_file, 
+                            f'structure_files/generation-{num_gen + 1:03d}/final_structures')
+                
+                file_energy.write(line_previous_energy)
+            else:
+                shutil.copy(f'structure_files/generation-{num_gen + 1:03d}/relaxed_structures/' + struc_file, 
+                            f'structure_files/generation-{num_gen + 1:03d}/final_structures')
+                
+                file_energy.write(line_actual_energy)
+
+        file_energy.close()        
+        previous_energy.close()
+        actual_energy.close()
+
+        num_gen = num_gen + 1
+
+if (save_all_generations == True) and (num_generations != 0):
     os.mkdir('structure_files/final_structures')
 
     for struc_file in name_selected_structures:
@@ -300,7 +302,7 @@ if save_all_generations == True:
     
     shutil.copy(f'structure_files/generation-{num_generations:03d}/final_structures/energy_ranking.txt', 
                     'structure_files/final_structures/energy_ranking.txt')
-else:
+elif (save_all_generations == False) and (num_generations != 0):
     os.mkdir('final_structures')
 
     for struc_file in name_selected_structures:
