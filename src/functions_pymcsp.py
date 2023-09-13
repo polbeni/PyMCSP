@@ -108,10 +108,10 @@ def write_in_file(file_object, structure_path, struc_num, energy, prec_spglib, c
 
     spglib_cell = (lattice, positions, atomic_numbers)
 
-    space_group_info = spglib.get_spacegroup(spglib_cell, symprec=prec_spglib, 
-                                             angle_tolerance=-1.0, symbol_type=0)
+    space_group_info = spglib.get_symmetry_dataset(spglib_cell, symprec=prec_spglib, 
+                                             angle_tolerance=-1.0, hall_number=0)
     
-    file_object.write(f'{int(counter)}       POSCAR-{struc_num:04d}       {energy}       {space_group_info}\n')
+    file_object.write(f'{int(counter)}       POSCAR-{struc_num:04d}       {energy}       {space_group_info["international"]} ({space_group_info["number"]})\n')
 
     return
 
