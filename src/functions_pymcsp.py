@@ -209,6 +209,6 @@ def write_in_file_gen(file_object, structure_path, struc_num, energy, prec_spgli
     space_group_info = spglib.get_symmetry_dataset(spglib_cell, symprec=prec_spglib, 
                                              angle_tolerance=-1.0, hall_number=0)
     
-    file_object.write(f'{int(counter)}       POSCAR-{struc_num:04d}       {energy}       {space_group_info["international"]} ({space_group_info["number"]})\n')
+    file_object.write(f'{int(counter)}       {struc_num}       {energy}       {space_group_info["international"]} ({space_group_info["number"]})\n')
 
     return
