@@ -2,7 +2,7 @@
 
 A Python and [M3GNet](https://github.com/materialsvirtuallab/m3gnet) [[1]](#1) implementation for Crystal Structure Prediction.
 
-The code is still in development, however its functional and you can try it.
+The code is still in development, however it is functional and you can try it.
 
 ## Installation
 
