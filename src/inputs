@@ -18,5 +18,5 @@ save_all_generations = True    # if False it will only be saved the final found 
 structure_file = poscar        # type of structure file for the generated phases (for now just poscar)
 prec_group_det = 1e-3          # precision to determine phase group with spglib
 surviving_phases = 0.15        # fraction of phases that will be considered in the generations loop
-num_generations = 10           # number of generations
+num_generations = 0            # number of generations
 max_disp = 0.6                 # length of maximum displacement for the distortion of the structure (in Angstroms)
