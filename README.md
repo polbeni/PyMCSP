@@ -19,7 +19,7 @@ Since it is possible to re-train M3GNet with DFT results, we can use DFT materia
 Some examples of found structures can be found in `examples`. There are results for three different materials:
 - Carbon (C)
 - Ag<sub>3</sub>SBr
-- BaTiO<sub>3</sub>
+- BN
 
 For each of these materials you can find the ten less energetic POSCAR files (by the energies provided by M3GNet), and the `inputs` file that we used to generate them.
 
