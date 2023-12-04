@@ -10,10 +10,10 @@ import numpy as np
 
 from pymatgen.core import Structure
 from pymatgen.io.vasp import Poscar
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
 from pyxtal import pyxtal
 
-import spglib
 
 def generate_phases(stoi_dict, phase_number, dim, atoms_arr, text_output, type_output):
     """
@@ -102,16 +102,10 @@ def write_in_file(file_object, structure_path, struc_num, energy, prec_spglib, c
 
     structure = Poscar.from_file(structure_path).structure
 
-    lattice = structure.lattice.matrix
-    positions = [site.coords for site in structure.sites]
-    atomic_numbers = [site.specie.number for site in structure.sites]
+    structure_symmetry = SpacegroupAnalyzer(structure=structure, symprec=prec_spglib)
+    symmetry = structure_symmetry.get_symmetry_dataset()
 
-    spglib_cell = (lattice, positions, atomic_numbers)
-
-    space_group_info = spglib.get_symmetry_dataset(spglib_cell, symprec=prec_spglib, 
-                                             angle_tolerance=-1.0, hall_number=0)
-    
-    file_object.write(f'{int(counter)}       POSCAR-{struc_num:04d}       {energy}       {space_group_info["international"]} ({space_group_info["number"]})\n')
+    file_object.write(f'{int(counter)}       POSCAR-{struc_num:04d}       {energy}       {symmetry["international"]} ({symmetry["number"]})\n')
 
     return
 
@@ -200,15 +194,10 @@ def write_in_file_gen(file_object, structure_path, struc_num, energy, prec_spgli
 
     structure = Poscar.from_file(structure_path).structure
 
-    lattice = structure.lattice.matrix
-    positions = [site.coords for site in structure.sites]
-    atomic_numbers = [site.specie.number for site in structure.sites]
+    structure_symmetry = SpacegroupAnalyzer(structure=structure, symprec=prec_spglib)
+    symmetry = structure_symmetry.get_symmetry_dataset()
 
-    spglib_cell = (lattice, positions, atomic_numbers)
+    file_object.write(f'{int(counter)}       {struc_num}       {energy}       {symmetry["international"]} ({symmetry["number"]})\n')
 
-    space_group_info = spglib.get_symmetry_dataset(spglib_cell, symprec=prec_spglib, 
-                                             angle_tolerance=-1.0, hall_number=0)
-    
-    file_object.write(f'{int(counter)}       {struc_num}       {energy}       {space_group_info["international"]} ({space_group_info["number"]})\n')
 
     return
