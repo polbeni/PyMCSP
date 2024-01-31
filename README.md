@@ -62,6 +62,11 @@ The reason of this is because for now the ion distortion applies a Gaussian nois
 
 Then, imposing `num_generations` equal to zero, we avoid larger computation times, since with the first simulation (generation of structures and M3GNet relaxation) we have enough to find some interesting phases.
 
+## Authors
+
+This code and repository are being developed by:
+- Pol Benítez Colominas (pol.benitez@upc.edu)
+
 ## References
 
 <a id="1">[1]</a> 
