@@ -1,5 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - September 2023
+# September 2023 - January 2024
 # Version 0.2
 
 # Main script to perfrom crystal structure prediction with PyMCSP method

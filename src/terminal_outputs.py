@@ -1,5 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - September 2023
+# September 2023 - January 2024
 # Version 0.2
 
 # Functions for output messages in terminal file
@@ -13,7 +13,7 @@ def initial_message():
     print('o---------------------------------------------------o')
     print('|                      PyMCSP                       |')
     print('|                                                   |')
-    print('|                      Pol Benítez Colominas, 2023  |')
+    print('|                 Pol Benítez Colominas, 2023-2024  |')
     print('|             Universitat Politècnica de Catalunya  |')
     print('o---------------------------------------------------o')
     print('')
