@@ -1,6 +1,6 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - January 2024
-# Version 0.2
+# September 2023 - February 2024
+# Version 0.3
 
 # Functions file
 
@@ -10,6 +10,7 @@ import numpy as np
 
 from pymatgen.core import Structure
 from pymatgen.io.vasp import Poscar
+from pymatgen.io.cif import CifParser
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
 from pyxtal import pyxtal
@@ -26,7 +27,7 @@ def generate_phases(stoi_dict, phase_number, dim, atoms_arr, text_output, type_o
         dim: dimension of the system (2 or 3)
         atoms_arr: array with atoms
         text_output: to decide if we want output text in terminal or not
-        type_output: the crystal type of output file
+        type_output: the crystal type of output file, poscar or cif
     """
 
     num_groups = {
@@ -43,7 +44,10 @@ def generate_phases(stoi_dict, phase_number, dim, atoms_arr, text_output, type_o
         for num_space_group in range(num_groups[dim]):
             try:
                 struc.from_random(dim, num_space_group+1, atoms_arr, value)
-                name_file = 'structure_files/initial_structures/generated_structures/POSCAR-' + "{:04d}".format(phase_number)
+                if type_output == 'poscar':
+                    name_file = 'structure_files/initial_structures/generated_structures/POSCAR-' + "{:06d}".format(phase_number)
+                elif type_output == 'cif':
+                    name_file = 'structure_files/initial_structures/generated_structures/structure-' + "{:06d}".format(phase_number) + '.cif'
                 struc.to_file(name_file, fmt=type_output)
 
                 phase_number = phase_number + 1
@@ -65,7 +69,7 @@ def relax_structure(relax_object, init_struc_path, relax_struc_path, text_output
         init_struc_path: the path of the structure to relax
         relax_struc_path: the path of the relaxed structure
         text_output: to decide if we want output text in terminal or not
-        type_output: the crystal type of output file
+        type_output: the crystal type of output file, poscar or cif
         counter: a number counter for the phase
     """
 
@@ -86,7 +90,7 @@ def relax_structure(relax_object, init_struc_path, relax_struc_path, text_output
     return final_energy, counter 
 
 
-def write_in_file(file_object, structure_path, struc_num, energy, prec_spglib, counter):
+def write_in_file(file_object, structure_path, struc_num, energy, prec_spglib, type_output, counter):
     """
     Write the number, the file structure number, the energy per atom (in eV),
     and the phase group for a given structure in the energy file
@@ -97,15 +101,22 @@ def write_in_file(file_object, structure_path, struc_num, energy, prec_spglib, c
         struc_num: the number of the structure
         energy: energy per atom (in eV) of the structure
         prec_spglib: precision for the phase determination with spglib
+        type_output: the crystal type of output file, poscar or cif
         counter: a number counter for the phase
     """
-
-    structure = Poscar.from_file(structure_path).structure
+    if type_output == 'poscar':
+        structure = Poscar.from_file(structure_path).structure
+    elif type_output == 'cif':
+        parser = CifParser(structure_path)
+        structure = parser.get_structures()[0]
 
     structure_symmetry = SpacegroupAnalyzer(structure=structure, symprec=prec_spglib)
     symmetry = structure_symmetry.get_symmetry_dataset()
 
-    file_object.write(f'{int(counter)}       POSCAR-{struc_num:04d}       {energy}       {symmetry["international"]} ({symmetry["number"]})\n')
+    if type_output == 'poscar':
+        file_object.write(f'{int(counter)}       POSCAR-{struc_num:06d}       {energy}       {symmetry["international"]} ({symmetry["number"]})\n')
+    elif type_output == 'cif':
+        file_object.write(f'{int(counter)}       structure-{struc_num:06d}.cif       {energy}       {symmetry["international"]} ({symmetry["number"]})\n')
 
     return
 
@@ -127,13 +138,14 @@ def create_dir_generation(number_generation):
     return
 
 
-def structure_distortion(file, max_displacement, final_path):
+def structure_distortion(file, max_displacement, type_output, final_path):
     """
     Distort a crystal structure
 
     Inputs:
         file: name or path of the file
         max_displacement: maximum displacement in a given direction (in Angstroms)
+        type_output: the crystal type of output file, poscar or cif
         final_path: name and path of the final file
     """
 
@@ -144,7 +156,7 @@ def structure_distortion(file, max_displacement, final_path):
         displacement_vector = np.random.uniform(-max_displacement, max_displacement, 3)
         site.coords = site.coords + displacement_vector
 
-    displaced_structure.to(filename=final_path, fmt='poscar')
+    displaced_structure.to(filename=final_path, fmt=type_output)
 
     return
 
@@ -158,7 +170,7 @@ def relax_structure_gen(relax_object, dist_struc_path, relax_struc_path, text_ou
         dist_struc_path: the path of the distorted structure
         relax_struc_path: the path of the relaxed structure
         text_output: to decide if we want output text in terminal or not
-        type_output: the crystal type of output file
+        type_output: the crystal type of output file, poscar or cif
     """
 
     crystal_structure = Structure.from_file(dist_struc_path)
@@ -178,7 +190,7 @@ def relax_structure_gen(relax_object, dist_struc_path, relax_struc_path, text_ou
     return final_energy
 
 
-def write_in_file_gen(file_object, structure_path, struc_num, energy, prec_spglib, counter):
+def write_in_file_gen(file_object, structure_path, struc_num, energy, prec_spglib, type_output, counter):
     """
     Write the number, the file structure number, the energy per atom (in eV),
     and the phase group for a given structure in the energy file
@@ -189,10 +201,15 @@ def write_in_file_gen(file_object, structure_path, struc_num, energy, prec_spgli
         struc_num: the number of the structure
         energy: energy per atom (in eV) of the structure
         prec_spglib: precision for the phase determination with spglib
+        type_output: the crystal type of output file, poscar or cif
         counter: a number counter for the phase
     """
 
-    structure = Poscar.from_file(structure_path).structure
+    if type_output == 'poscar':
+        structure = Poscar.from_file(structure_path).structure
+    elif type_output == 'cif':
+        parser = CifParser(structure_path)
+        structure = parser.get_structures()[0]
 
     structure_symmetry = SpacegroupAnalyzer(structure=structure, symprec=prec_spglib)
     symmetry = structure_symmetry.get_symmetry_dataset()

@@ -1,6 +1,6 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - January 2024
-# Version 0.2
+# September 2023 - February 2024
+# Version 0.3
 
 # Main script to perfrom crystal structure prediction with PyMCSP method
 
@@ -41,8 +41,8 @@ print_terminal_outputs = None
 save_all_generations = None
 structure_file = None
 prec_group_det = None
+num_generations = None
 surviving_phases = None
-num_generations = None 
 max_disp = None 
 
 inputs = open('inputs', "r")
@@ -77,8 +77,8 @@ print_terminal_outputs = variables[5]
 save_all_generations = variables[6]
 structure_file = variables[7]
 prec_group_det = float(variables[8])
-surviving_phases = float(variables[9])
-num_generations = int(variables[10])
+num_generations = int(variables[9])
+surviving_phases = float(variables[10])
 max_disp = float(variables[11])
 
 if print_terminal_outputs == True:
@@ -151,8 +151,12 @@ if print_terminal_outputs == True:
     relax_ini()
 
 for num_struc in range(num_structures):
-    initial_path = 'structure_files/initial_structures/generated_structures/POSCAR-' + "{:04d}".format(num_struc + 1)
-    relaxed_path = 'structure_files/initial_structures/relaxed_structures/POSCAR-' + "{:04d}".format(num_struc + 1)
+    if structure_file == 'poscar':
+        initial_path = 'structure_files/initial_structures/generated_structures/POSCAR-' + "{:06d}".format(num_struc + 1)
+        relaxed_path = 'structure_files/initial_structures/relaxed_structures/POSCAR-' + "{:06d}".format(num_struc + 1)
+    elif structure_file == 'cif':
+        initial_path = 'structure_files/initial_structures/generated_structures/structure-' + "{:06d}".format(num_struc + 1) + '.cif'
+        relaxed_path = 'structure_files/initial_structures/relaxed_structures/structure-' + "{:06d}".format(num_struc + 1) + '.cif'
 
     relax_energy, count = relax_structure(relaxer, initial_path, relaxed_path, 
                                           print_terminal_outputs, structure_file, count)
@@ -167,16 +171,22 @@ sorted_indices = np.argsort(phase_energy_array[:,1])
 phase_energy_sorted = phase_energy_array[sorted_indices]
 
 file_energy = open('structure_files/initial_structures/relaxed_structures/energy_ranking.txt', 'w')
-file_energy.write('#       POSCAR-num       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
+if structure_file == 'poscar':
+    file_energy.write('#       POSCAR-num       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
+elif structure_file == 'cif':
+    file_energy.write('#       structure-num.cif       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
 
 count = 1
 for num_struc in range(num_structures):
     struc_number = int(phase_energy_sorted[num_struc,0])
     struc_energy = phase_energy_sorted[num_struc,1]
-    phase_file = 'structure_files/initial_structures/relaxed_structures/POSCAR-' + "{:04d}".format(struc_number)
+    if structure_file == 'poscar':
+        phase_file = 'structure_files/initial_structures/relaxed_structures/POSCAR-' + "{:06d}".format(struc_number)
+    elif structure_file == 'cif':
+        phase_file = 'structure_files/initial_structures/relaxed_structures/structure-' + "{:06d}".format(struc_number) + '.cif'
 
     write_in_file(file_energy, phase_file, struc_number, struc_energy, 
-                  prec_group_det, count)
+                  prec_group_det, structure_file, count)
 
     count = count + 1
 
@@ -188,9 +198,14 @@ file_energy.close()
 files_in_dir = os.listdir('structure_files/initial_structures/relaxed_structures/')
 
 number_ini_struc = 0
-for filename in files_in_dir:
-    if filename.startswith('POSCAR-'):
-       number_ini_struc = number_ini_struc + 1
+if structure_file == 'poscar':
+    for filename in files_in_dir:
+        if filename.startswith('POSCAR-'):
+            number_ini_struc = number_ini_struc + 1
+elif structure_file == 'cif':
+    for filename in files_in_dir:
+        if filename.startswith('structure-'):
+            number_ini_struc = number_ini_struc + 1
 
 number_surv_struc = int(number_ini_struc*surviving_phases)
 
@@ -212,7 +227,10 @@ if num_generations != 0:
         }
 
         path_destination = f'structure_files/generation-{num_gen + 1:03d}/initial_structures/'
-        file_prefix = 'POSCAR-'
+        if structure_file == 'poscar':
+            file_prefix = 'POSCAR-'
+        elif structure_file == 'cif':
+            file_prefix = 'structure-'
 
         if  num_gen == 0:
             path_initial_struc = name_dir_initial_struc['initial']
@@ -252,10 +270,13 @@ if num_generations != 0:
             path_struc_file = f'structure_files/generation-{num_gen + 1:03d}/initial_structures/' + struc_file
             path_dist_file = f'structure_files/generation-{num_gen + 1:03d}/distorsed_structures/' + struc_file
 
-            structure_distortion(path_struc_file, max_disp, path_dist_file)
+            structure_distortion(path_struc_file, max_disp, structure_file, path_dist_file)
 
         file_energy = open(f'structure_files/generation-{num_gen + 1:03d}/relaxed_structures/energy_ranking.txt', 'w')
-        file_energy.write('#       POSCAR-num       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
+        if structure_file == 'poscar':
+            file_energy.write('#       POSCAR-num       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
+        elif structure_file == 'cif':
+            file_energy.write('#       structure-num.cif       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
         count = 1
 
         if print_terminal_outputs == True:
@@ -269,7 +290,7 @@ if num_generations != 0:
                                                 print_terminal_outputs, structure_file)
             
             write_in_file_gen(file_energy, path_relax_file, struc_file, relaxed_energy, 
-                            prec_group_det, count)
+                            prec_group_det, structure_file, count)
             
             count = count + 1
 
@@ -297,7 +318,10 @@ if num_generations != 0:
         actual_energy.readline()
 
         file_energy = open(f'structure_files/generation-{num_gen + 1:03d}/final_structures/energy_ranking.txt', 'w')
-        file_energy.write('#       POSCAR-num       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
+        if structure_file == 'poscar':
+            file_energy.write('#       POSCAR-num       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
+        elif structure_file == 'cif':
+            file_energy.write('#       structure-num.cif       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
 
         for struc_file in name_selected_structures:
             line_previous_energy = previous_energy.readline()
