@@ -8,15 +8,18 @@
 # IMPORTANT: Do not change the structure of this file and let an space between
 # the variable name and equal sign, and between equal sign and the value
 
-dimension = 3                  # dimension of the material; 2 or 3
-atoms = ['Ga','As']            # name of the atoms in the material
-stoichiometry = [1,1]          # stoichiometry of the materials, has to have the same order as atoms
-num_max_atoms = 20             # maximum number of atoms that we want in the unit cell
-num_same_phase = 10            # number of generated structures for the same space group and stoichiometry
-print_terminal_outputs = True  # activate (True) or deactivate (False) the information provided via terminal
-save_all_generations = True    # if False it will only be saved the final found structures
-structure_file = poscar        # type of structure file for the generated phases (poscar or cif)
-prec_group_det = 1e-5          # precision to determine phase group with spglib
-num_generations = 0            # number of generations (for now, recommended value: 0)
-surviving_phases = 0.15        # fraction of phases that will be considered in the generations loop
-max_disp = 0.6                 # length of maximum displacement for the distortion of the structure (in Angstroms)
+dimension               =  3                   # dimension of the material; 2 or 3
+atoms                   =  ['Ga','As']         # name of the atoms in the material
+stoichiometry           =  [1,1]               # stoichiometry of the materials, has to have the same order as atoms
+num_max_atoms           =  20                  # maximum number of atoms that we want in the unit cell
+num_same_phase          =  10                  # number of generated structures for the same space group and stoichiometry
+max_ionic_steps         =  200                 # maximum number of ionic steps for the relaxation of the structures
+comp_pressure           =  True                # search phases with pressure (True) or at 0 pressure (False)
+pressure                =  1e6                 # desired pressure in Pa (0 if comp_pressure == True)
+print_terminal_outputs  =  True                # activate (True) or deactivate (False) the information provided via terminal
+save_all_generations    =  True                # if False it will only be saved the final found structures
+structure_file          =  poscar              # type of structure file for the generated phases (poscar or cif)
+prec_group_det          =  1e-5                # precision to determine phase group with spglib
+num_generations         =  0                   # number of generations (for now, recommended value: 0)
+surviving_phases        =  0.15                # fraction of phases that will be considered in the generations loop
+max_disp                =  0.6                 # length of maximum displacement for the distortion of the structure (in Angstroms)

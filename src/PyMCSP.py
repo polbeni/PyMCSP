@@ -37,6 +37,9 @@ atoms = []
 stoichiometry = []
 num_max_atoms = None
 num_same_phase = None
+max_ionic_steps = None
+comp_pressure = None
+pressure = None
 print_terminal_outputs = None
 save_all_generations = None
 structure_file = None
@@ -47,7 +50,7 @@ max_disp = None
 
 inputs = open('inputs', "r")
 
-variables = [None]*12
+variables = [None]*15
 
 for it in range(10):
     inputs.readline()
@@ -73,13 +76,16 @@ atoms = variables[1]
 stoichiometry = variables[2]
 num_max_atoms = int(variables[3])
 num_same_phase = int(variables[4])
-print_terminal_outputs = variables[5]
-save_all_generations = variables[6]
-structure_file = variables[7]
-prec_group_det = float(variables[8])
-num_generations = int(variables[9])
-surviving_phases = float(variables[10])
-max_disp = float(variables[11])
+max_ionic_steps = int(variables[5])
+comp_pressure = variables[6]
+pressure = float(variables[7])
+print_terminal_outputs = variables[8]
+save_all_generations = variables[9]
+structure_file = variables[10]
+prec_group_det = float(variables[11])
+num_generations = int(variables[12])
+surviving_phases = float(variables[13])
+max_disp = float(variables[14])
 
 if print_terminal_outputs == True:
     initial_message()
@@ -158,7 +164,7 @@ for num_struc in range(num_structures):
         initial_path = 'structure_files/initial_structures/generated_structures/structure-' + "{:06d}".format(num_struc + 1) + '.cif'
         relaxed_path = 'structure_files/initial_structures/relaxed_structures/structure-' + "{:06d}".format(num_struc + 1) + '.cif'
 
-    relax_energy, count = relax_structure(relaxer, initial_path, relaxed_path, 
+    relax_energy, count = relax_structure(relaxer, initial_path, relaxed_path, max_ionic_steps, 
                                           print_terminal_outputs, structure_file, count)
     
     phase_energy_array[count - 1,0] = int(count)
@@ -286,7 +292,7 @@ if num_generations != 0:
             path_dist_file = f'structure_files/generation-{num_gen + 1:03d}/distorsed_structures/' + struc_file
             path_relax_file = f'structure_files/generation-{num_gen + 1:03d}/relaxed_structures/' + struc_file
 
-            relaxed_energy = relax_structure_gen(relaxer, path_dist_file, path_relax_file,
+            relaxed_energy = relax_structure_gen(relaxer, path_dist_file, path_relax_file, max_ionic_steps,
                                                 print_terminal_outputs, structure_file)
             
             write_in_file_gen(file_energy, path_relax_file, struc_file, relaxed_energy, 

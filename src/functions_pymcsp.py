@@ -60,7 +60,7 @@ def generate_phases(stoi_dict, phase_number, dim, atoms_arr, text_output, type_o
     return phase_number
 
 
-def relax_structure(relax_object, init_struc_path, relax_struc_path, text_output, type_output, counter):
+def relax_structure(relax_object, init_struc_path, relax_struc_path, max_steps, text_output, type_output, counter):
     """
     Relax an structure and get the energy
 
@@ -68,6 +68,7 @@ def relax_structure(relax_object, init_struc_path, relax_struc_path, text_output
         relax_object: the relaxer object by m3gnet module
         init_struc_path: the path of the structure to relax
         relax_struc_path: the path of the relaxed structure
+        max_steps: number maximum of ionic steps
         text_output: to decide if we want output text in terminal or not
         type_output: the crystal type of output file, poscar or cif
         counter: a number counter for the phase
@@ -76,9 +77,9 @@ def relax_structure(relax_object, init_struc_path, relax_struc_path, text_output
     crystal_structure = Structure.from_file(init_struc_path)
 
     if text_output == True:
-        relaxed_structure = relax_object.relax(crystal_structure, verbose=True)
+        relaxed_structure = relax_object.relax(crystal_structure, steps=max_steps, verbose=True)
     else:
-        relaxed_structure = relax_object.relax(crystal_structure, verbose=False)
+        relaxed_structure = relax_object.relax(crystal_structure, steps=max_steps, verbose=False)
 
     final_structure = relaxed_structure['final_structure']
 
@@ -161,7 +162,7 @@ def structure_distortion(file, max_displacement, type_output, final_path):
     return
 
 
-def relax_structure_gen(relax_object, dist_struc_path, relax_struc_path, text_output, type_output):
+def relax_structure_gen(relax_object, dist_struc_path, relax_struc_path, max_steps, text_output, type_output):
     """
     Relax an structure and get the energy for the generations part of the main code
 
@@ -169,6 +170,7 @@ def relax_structure_gen(relax_object, dist_struc_path, relax_struc_path, text_ou
         relax_object: the relaxer object by m3gnet module
         dist_struc_path: the path of the distorted structure
         relax_struc_path: the path of the relaxed structure
+        max_steps: number maximum of ionic steps
         text_output: to decide if we want output text in terminal or not
         type_output: the crystal type of output file, poscar or cif
     """
@@ -176,9 +178,9 @@ def relax_structure_gen(relax_object, dist_struc_path, relax_struc_path, text_ou
     crystal_structure = Structure.from_file(dist_struc_path)
 
     if text_output == True:
-        relaxed_structure = relax_object.relax(crystal_structure, verbose=True)
+        relaxed_structure = relax_object.relax(crystal_structure, steps=max_steps, verbose=True)
     else:
-        relaxed_structure = relax_object.relax(crystal_structure, verbose=False)
+        relaxed_structure = relax_object.relax(crystal_structure, steps=max_steps, verbose=False)
 
     final_structure = relaxed_structure['final_structure']
 
