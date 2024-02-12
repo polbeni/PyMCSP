@@ -50,7 +50,8 @@ def generate_phases(stoi_dict, phase_number, dim, atoms_arr, text_output, type_o
                     name_file = 'structure_files/initial_structures/generated_structures/structure-' + "{:06d}".format(phase_number) + '.cif'
                 struc.to_file(name_file, fmt=type_output)
 
-                print(f'Crystal structure generated with the phase group {num_space_group + 1}!')
+                if text_output == True:
+                    print(f'Crystal structure generated with the phase group {num_space_group + 1}!')
 
                 phase_number = phase_number + 1
             except Exception:

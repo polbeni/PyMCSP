@@ -411,9 +411,10 @@ elif (save_all_generations == False) and (num_generations != 0):
     shutil.rmtree('structure_files')
 
 end_time = time.time()
-
 elapsed_time = end_time - star_time
-print(f'Elapsed time: {elapsed_time:.3f} seconds')
+
+if print_terminal_outputs == True:
+    print(f'Elapsed time: {elapsed_time:.3f} seconds')
 
 if print_terminal_outputs == True:
             final_message()
