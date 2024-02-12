@@ -8,7 +8,9 @@
 #### Import libraries
 
 import os
+import sys
 import shutil
+import time
 
 import numpy as np
 
@@ -29,6 +31,7 @@ import warnings
 for category in (UserWarning, DeprecationWarning):
     warnings.filterwarnings("ignore", category=category, module="tensorflow")
 
+star_time = time.time()
 
 #### Read inputs from inputs file
 
@@ -40,7 +43,9 @@ num_same_phase = None
 max_ionic_steps = None
 comp_pressure = None
 pressure = None
+num_volumes = None
 print_terminal_outputs = None
+save_log_file = None
 save_all_generations = None
 structure_file = None
 prec_group_det = None
@@ -50,7 +55,7 @@ max_disp = None
 
 inputs = open('inputs', "r")
 
-variables = [None]*15
+variables = [None]*17
 
 for it in range(10):
     inputs.readline()
@@ -79,13 +84,38 @@ num_same_phase = int(variables[4])
 max_ionic_steps = int(variables[5])
 comp_pressure = variables[6]
 pressure = float(variables[7])
-print_terminal_outputs = variables[8]
-save_all_generations = variables[9]
-structure_file = variables[10]
-prec_group_det = float(variables[11])
-num_generations = int(variables[12])
-surviving_phases = float(variables[13])
-max_disp = float(variables[14])
+num_volumes = int(variables[8])
+print_terminal_outputs = variables[9]
+save_log_file = variables[10]
+save_all_generations = variables[11]
+structure_file = variables[12]
+prec_group_det = float(variables[13])
+num_generations = int(variables[14])
+surviving_phases = float(variables[15])
+max_disp = float(variables[16])
+
+
+### Save the log file
+    
+log_file = 'output.log'
+
+if save_log_file == True:
+    log_file_handle = open(log_file, "w")
+
+    class Tee:
+        def __init__(self, *files):
+            self.files = files
+
+        def write(self, text):
+            for file in self.files:
+                file.write(text)
+                file.flush()
+
+        def flush(self):
+            for file in self.files:
+                file.flush()
+
+    sys.stdout = Tee(sys.stdout, log_file_handle)
 
 if print_terminal_outputs == True:
     initial_message()
@@ -380,5 +410,17 @@ elif (save_all_generations == False) and (num_generations != 0):
     
     shutil.rmtree('structure_files')
 
+end_time = time.time()
+
+elapsed_time = end_time - star_time
+print(f'Elapsed time: {elapsed_time:.3f} seconds')
+
 if print_terminal_outputs == True:
             final_message()
+
+
+### Close the log file
+    
+if save_log_file == True:
+    log_file_handle.close()
+    sys.stdout = sys.__stdout__
