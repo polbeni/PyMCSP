@@ -95,6 +95,30 @@ def relax_end():
     return
 
 
+def pressure_ini():
+    """
+    Starting the pressure calculations
+    """
+
+    print('')
+    print('Determining volumes that minimize the enthalpy for pressure study.')
+    print('')
+
+    return
+
+    
+def pressure_end():
+    """
+    End the pressure calculations
+    """
+
+    print('')
+    print('Energies determined for the structures with pressure!')
+    print('')
+
+    return
+
+
 def gen_ini():
     """
     Starting generations

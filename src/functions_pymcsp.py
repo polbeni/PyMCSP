@@ -5,6 +5,7 @@
 # Functions file
 
 import os
+from copy import deepcopy
 
 import numpy as np
 
@@ -94,6 +95,101 @@ def relax_structure(relax_object, init_struc_path, relax_struc_path, max_steps, 
     return final_energy, counter 
 
 
+def eV_to_J(eV_energy):
+    """
+    This function returns energy in Joules from an energy in eV
+
+    Inputs:
+        eV_energy: energy in eV
+    """
+
+    return eV_energy*1.60218e-19
+
+
+def J_to_eV(J_energy):
+    """
+    This function returns energy in eV from an energy in Joules
+
+    Inputs:
+        eV_energy: energy in eV
+    """
+
+    return J_energy*6.242e18
+
+
+def A3_to_m3(A3_volume):
+    """
+    This function returns volume in m**3 from a volume in Angstrom**3
+
+    Inputs:
+        A3_volume: energy in Angstrom**3
+    """
+
+    return A3_volume*1e-30
+
+
+def pressure_structure(relax_object, relax_struc_path, pressure_struc_path, pressure, number_volumes, min_alpha, max_alpha, text_output, type_output, counter):
+    """
+    Find the structure that minimizes enthalpy for a given pressure, and returnes the energy and alpha (where alpha is the proportional
+    volume that that verifies the minimization)
+
+    Inputs:
+        relax_object: the relaxer object by m3gnet module
+        relax_struc_path: the path of the relaxed structure
+        pressure_struc_path: the path of the pressurized structure
+        pressure: value of the pressure in Pa
+        number_volumes: the number of different volumes we want compute in order to determine the enthalpy curve
+        min_alpha: minimum proportional volume
+        max_alpha: maximum proportional volume
+        text_output: to decide if we want output text in terminal or not
+        type_output: the crystal type of output file, poscar or cif
+        counter: a number counter for the phase
+    """
+
+    relaxed_structure = Structure.from_file(relax_struc_path)
+
+    volume = np.zeros(number_volumes)
+    alpha_array = np.zeros(number_volumes)
+    enthalpy = np.zeros(number_volumes)
+
+    alpha = max_alpha
+
+    for vol in range(number_volumes):
+        distorted = deepcopy(relaxed_structure)
+        distorted.scale_lattice(distorted.volume * alpha)
+
+        volume[vol] = distorted.volume * alpha
+        alpha_array[vol] = alpha
+
+        if text_output == True:
+            pressure_results = relax_object.relax(distorted, steps=1, verbose=True)
+        else:
+            pressure_results = relax_object.relax(distorted, steps=1, verbose=False)
+
+        energy_volume = float(pressure_results['trajectory'].energies[0])
+
+        enthalpy[vol] = J_to_eV(eV_to_J(energy_volume) + pressure*A3_to_m3(distorted.volume*alpha))
+
+        alpha = alpha - (max_alpha - min_alpha)/number_volumes
+
+    alpha_min_enthalpy = alpha_array[np.argmin(enthalpy)]
+
+    pressurized_structure = deepcopy(relaxed_structure)
+    pressurized_structure.scale_lattice(pressurized_structure.volume*alpha_min_enthalpy)
+
+    pressurized_structure.to(filename=pressure_struc_path, fmt=type_output)
+
+    if text_output == True:
+        pressurized_energy = relax_object.relax(pressurized_structure, steps=1, verbose=True)
+    else:
+        pressurized_energy = relax_object.relax(pressurized_structure, steps=1, verbose=False)
+
+    final_energy = float(pressurized_energy['trajectory'].energies[0]/len(relaxed_structure))
+    counter = counter + 1
+
+    return final_energy, counter, alpha_min_enthalpy
+
+
 def write_in_file(file_object, structure_path, struc_num, energy, prec_spglib, type_output, counter):
     """
     Write the number, the file structure number, the energy per atom (in eV),
@@ -121,6 +217,38 @@ def write_in_file(file_object, structure_path, struc_num, energy, prec_spglib, t
         file_object.write(f'{int(counter)}       POSCAR-{struc_num:06d}       {energy}       {symmetry["international"]} ({symmetry["number"]})\n')
     elif type_output == 'cif':
         file_object.write(f'{int(counter)}       structure-{struc_num:06d}.cif       {energy}       {symmetry["international"]} ({symmetry["number"]})\n')
+
+    return
+
+
+def write_in_file_pressure(file_object, structure_path, struc_num, energy, alpha, prec_spglib, type_output, counter):
+    """
+    Write the number, the file structure number, the energy per atom (in eV),
+    and the phase group for a given structure in the energy file
+
+    Inputs:
+        file_object: the object of the file of energies
+        structure_path: path to the structure of interest
+        struc_num: the number of the structure
+        energy: energy per atom (in eV) of the structure
+        alpha: proportion of the volume of the pressurized phase
+        prec_spglib: precision for the phase determination with spglib
+        type_output: the crystal type of output file, poscar or cif
+        counter: a number counter for the phase
+    """
+    if type_output == 'poscar':
+        structure = Poscar.from_file(structure_path).structure
+    elif type_output == 'cif':
+        parser = CifParser(structure_path)
+        structure = parser.get_structures()[0]
+
+    structure_symmetry = SpacegroupAnalyzer(structure=structure, symprec=prec_spglib)
+    symmetry = structure_symmetry.get_symmetry_dataset()
+
+    if type_output == 'poscar':
+        file_object.write(f'{int(counter)}       POSCAR-{struc_num:06d}       {energy}       {alpha}       {symmetry["international"]} ({symmetry["number"]})\n')
+    elif type_output == 'cif':
+        file_object.write(f'{int(counter)}       structure-{struc_num:06d}.cif       {energy}       {alpha}       {symmetry["international"]} ({symmetry["number"]})\n')
 
     return
 

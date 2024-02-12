@@ -44,6 +44,8 @@ max_ionic_steps = None
 comp_pressure = None
 pressure = None
 num_volumes = None
+minimum_volume = None 
+maximum_volume = None
 print_terminal_outputs = None
 save_log_file = None
 save_all_generations = None
@@ -55,7 +57,7 @@ max_disp = None
 
 inputs = open('inputs', "r")
 
-variables = [None]*17
+variables = [None]*19
 
 for it in range(10):
     inputs.readline()
@@ -85,14 +87,16 @@ max_ionic_steps = int(variables[5])
 comp_pressure = variables[6]
 pressure = float(variables[7])
 num_volumes = int(variables[8])
-print_terminal_outputs = variables[9]
-save_log_file = variables[10]
-save_all_generations = variables[11]
-structure_file = variables[12]
-prec_group_det = float(variables[13])
-num_generations = int(variables[14])
-surviving_phases = float(variables[15])
-max_disp = float(variables[16])
+minimum_volume = float(variables[9]) 
+maximum_volume = float(variables[10])
+print_terminal_outputs = variables[11]
+save_log_file = variables[12]
+save_all_generations = variables[13]
+structure_file = variables[14]
+prec_group_det = float(variables[15])
+num_generations = int(variables[16])
+surviving_phases = float(variables[17])
+max_disp = float(variables[18])
 
 
 ### Save the log file
@@ -197,8 +201,8 @@ for num_struc in range(num_structures):
     relax_energy, count = relax_structure(relaxer, initial_path, relaxed_path, max_ionic_steps, 
                                           print_terminal_outputs, structure_file, count)
     
-    phase_energy_array[count - 1,0] = int(count)
-    phase_energy_array[count - 1,1] = relax_energy
+    phase_energy_array[count - 1, 0] = int(count)
+    phase_energy_array[count - 1, 1] = relax_energy
 
 if print_terminal_outputs == True:
     relax_end()
@@ -227,6 +231,75 @@ for num_struc in range(num_structures):
     count = count + 1
 
 file_energy.close()
+
+
+### Pressure computations
+
+if comp_pressure == True:
+    dir_path = 'structure_files/initial_structures/relaxed_structures/'
+
+    num_structures = 0
+
+    for path in os.listdir(dir_path):
+        if os.path.isfile(os.path.join(dir_path, path)):
+            num_structures = num_structures + 1
+
+    if print_terminal_outputs == True:
+        print(f'Number of structures to study with pressure conditions: {num_structures - 1}')
+
+    os.mkdir('structure_files/initial_structures/pressure_structures/')
+
+    relaxer = Relaxer()
+
+    pressure_energy_array = np.zeros((num_structures - 1,3))
+    count = 0
+
+    if print_terminal_outputs == True:
+        pressure_ini()
+
+    for num_struc in range(num_structures - 1):
+        if structure_file == 'poscar':
+            relaxed_path = 'structure_files/initial_structures/relaxed_structures/POSCAR-' + "{:06d}".format(num_struc + 1)
+            pressure_path = 'structure_files/initial_structures/pressure_structures/POSCAR-' + "{:06d}".format(num_struc + 1)
+        elif structure_file == 'cif':
+            relaxed_path = 'structure_files/initial_structures/relaxed_structures/structure-' + "{:06d}".format(num_struc + 1) + '.cif'
+            pressure_path = 'structure_files/initial_structures/pressure_structures/structure-' + "{:06d}".format(num_struc + 1) + '.cif'
+
+        pressure_energy, count, alpha = pressure_structure(relaxer, relaxed_path, pressure_path, pressure, num_volumes, minimum_volume,
+                                                           maximum_volume, print_terminal_outputs, structure_file, count)
+        
+        pressure_energy_array[count - 1, 0] = int(count)
+        pressure_energy_array[count - 1, 1] = pressure_energy
+        pressure_energy_array[count - 1, 2] = alpha
+
+    if print_terminal_outputs == True:
+        pressure_end()
+
+    sorted_indices_pressure = np.argsort(pressure_energy_array[:,1])
+    phase_energy_sorted_pressure = pressure_energy_array[sorted_indices_pressure]
+
+    file_energy = open('structure_files/initial_structures/pressure_structures/energy_ranking_pressure.txt', 'w')
+    if structure_file == 'poscar':
+        file_energy.write('#       POSCAR-num       energy per atom (eV)       alpha       Space Group (Hermann-Mauguin)\n')
+    elif structure_file == 'cif':
+        file_energy.write('#       structure-num.cif       energy per atom (eV)       alpha       Space Group (Hermann-Mauguin)\n')
+
+    count = 1
+    for num_struc in range(num_structures - 1):
+        struc_number = int(phase_energy_sorted_pressure[num_struc,0])
+        struc_energy = phase_energy_sorted_pressure[num_struc,1]
+        struc_alpha = phase_energy_sorted_pressure[num_struc,2]
+        if structure_file == 'poscar':
+            phase_file = 'structure_files/initial_structures/pressure_structures/POSCAR-' + "{:06d}".format(struc_number)
+        elif structure_file == 'cif':
+            phase_file = 'structure_files/initial_structures/pressure_structures/structure-' + "{:06d}".format(struc_number) + '.cif'
+
+        write_in_file_pressure(file_energy, phase_file, struc_number, struc_energy, struc_alpha,
+                    prec_group_det, structure_file, count)
+
+        count = count + 1
+
+    file_energy.close()
 
 
 #### Start the generation loop
