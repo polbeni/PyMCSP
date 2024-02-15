@@ -24,9 +24,12 @@ import matplotlib.pyplot as plt
 # XRDCalculator and NDCalculator have wavelength variable, for now using the default values
 # read https://pymatgen.org/pymatgen.analysis.diffraction.html
 
-structure = Poscar.from_file('structure_files/initial_structures/relaxed_structures/POSCAR-2228').structure
+structure = Poscar.from_file('structure_files/initial_structures/relaxed_structures/POSCAR-2223').structure
 
 ##### Variables inputs #####
+path_structures = 'structure_files/initial_structures/relaxed_structures/'
+structure_file = 'poscar'
+name_exp_diff = 'diff_exp.csv' # the experimental diffractogram has to be a csv file with two columns, 2theta and intensity
 type_diffraction = 'x-ray'
 wl_xray = 'CuKa' # default value
 wl_neutron = 1.54184 # default value
@@ -35,9 +38,9 @@ max_2theta = 60
 total_num_points = 2000 # recommended not decrease the value
 peak_width = 0.25 
 type_interpolation = 'linear' # recommended not touch
-name_exp_diff = 'diff_exp.csv' # the experimental diffractogram has to be a csv file with two columns, 2theta and intensity
 prominance_exp = 100
 width_exp = 5
+displacement_range = 5
 ############################
 
 def curve_from_peaks(peaks_x, peaks_y, min_x, max_x, num_points, kind_interpolation):
@@ -127,20 +130,70 @@ def compute_loss_factor(range_x, intensity_theoretical, intesity_experimental):
     Computes the loss factor of similarity between theoretical and experimental curves
     bigger values represent less similarity
         T_result -> 0: best performance
-        T_result -> 2: worst performance
+        T_result -> 4: worst performance
 
     Inputs:
-        curve_x: range of values in x
+        range_x: range of values in x
         intensity_theoretical: intesity values of the theoretical phase
         intensity_experimental: intesity values of the obtained experimental diffractogram
     """
 
-    function_to_integrate = np.zeros(total_num_points)
+    function_to_integrate = np.zeros(len(range_x))
     function_to_integrate[:] = np.abs(intesity_experimental[:] - intensity_theoretical[:])
 
     T_result = integrate.trapezoid(function_to_integrate, range_x)
 
     return T_result
+
+
+def minimize_loss_displacement(range_x, min_x, max_x, intensity_theoretical, intesity_experimental, width_displ):
+    """
+    Displices the theoretical diffractogram from -amplitude to +amplitude and returns 
+    the minimized loss factor
+
+    Inputs:
+        range_x: range of values in x
+        min_x: minimum value of the x range of the interpolation
+        max_x: maximum value of the x range of the interpolation
+        intensity_theoretical: intesity values of the theoretical phase
+        intensity_experimental: intesity values of the obtained experimental diffractogram
+        width_displ: interval that we want to displace
+    """
+
+    jump_angle = (max_x - min_x)/len(range_x)
+    num_situations = int(width_displ/jump_angle)
+
+    T_array = np.zeros(num_situations)
+    act_sit = - int(num_situations/2)
+    for it in range(len(T_array)):
+        displ_intensity = np.zeros(len(intensity_theoretical))
+
+        if act_sit < 0:
+            ind_arr = -act_sit
+            for it2 in range(len(intensity_theoretical)):
+                if it2 + ind_arr < len(intensity_theoretical):
+                    displ_intensity[it2] = intensity_theoretical[it2 + ind_arr]
+                else:
+                    displ_intensity[it2] = 0
+        elif act_sit == 0:
+            displ_intensity[:] = intensity_theoretical[:]
+        else:
+            ind_arr = act_sit
+            for it2 in range(len(intensity_theoretical)):
+                if it2 <= ind_arr:
+                    displ_intensity[it2] = 0
+                    ind_arr = ind_arr + 1
+                else:
+                    displ_intensity[it2] = intensity_theoretical[it2 + ind_arr]
+                    ind_arr = ind_arr + 1
+
+        T_array[it] = compute_loss_factor(range_x, displ_intensity, intesity_experimental)
+
+        act_sit = act_sit + 1
+
+    minimized_T = np.min(T_array)
+    print(T_array)
+    return minimized_T
 
 
 # theoretical
@@ -192,6 +245,11 @@ exp_normalized_intensity = normalize_curve(exp_twotheta, exp_intensity)
 
 
 loss_factor = compute_loss_factor(exp_twotheta, normalized_intensity, exp_normalized_intensity)
+
+print(loss_factor)
+
+loss_factor = minimize_loss_displacement(exp_twotheta, min_2theta, max_2theta, normalized_intensity, 
+                                         exp_normalized_intensity, displacement_range)
 
 print(loss_factor)
 
