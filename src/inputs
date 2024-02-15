@@ -16,9 +16,9 @@ num_same_phase          =  10                  # number of generated structures 
 max_ionic_steps         =  200                 # maximum number of ionic steps for the relaxation of the structures
 comp_pressure           =  True                # search phases with pressure (True) or at 0 pressure (False) (for now pressure computations are not compatible with generations loop)
 pressure                =  1e6                 # desired pressure in Pa (will not be considered if comp_pressure == False)
-num_volumes             =  100                 # number of different volumes to determine enthalpy curves for pressure computations
-minimum_volume          =  0.01                # proportion with respect the original volume (V0) of the minimum desired volume (Vmin) for pressure calculations (Vmin=minimum_volume*V0)
-maximum_volume          =  1.5                 # proportion with respect the original volume (V0) of the maximum desired volume (Vmax) for pressure calculations (Vmax=minimum_volume*V0)
+num_volumes             =  50                  # number of different volumes to determine enthalpy curves for pressure computations
+minimum_volume          =  0.4                 # proportion with respect the original volume (V0) of the minimum desired volume (Vmin) for pressure calculations (Vmin=minimum_volume*V0)
+maximum_volume          =  1.2                 # proportion with respect the original volume (V0) of the maximum desired volume (Vmax) for pressure calculations (Vmax=minimum_volume*V0)
 print_terminal_outputs  =  True                # activate (True) or deactivate (False) the information provided via terminal
 save_log_file           =  True                # save a log file of the execution (True) or not (False)
 save_all_generations    =  True                # if False it will only be saved the final found structures

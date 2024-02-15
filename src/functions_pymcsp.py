@@ -8,6 +8,7 @@ import os
 from copy import deepcopy
 
 import numpy as np
+from scipy.interpolate import interp1d
 
 from pymatgen.core import Structure
 from pymatgen.io.vasp import Poscar
@@ -172,7 +173,12 @@ def pressure_structure(relax_object, relax_struc_path, pressure_struc_path, pres
 
         alpha = alpha - (max_alpha - min_alpha)/number_volumes
 
-    alpha_min_enthalpy = alpha_array[np.argmin(enthalpy)]
+    new_alpha_range = np.linspace(max_alpha, min_alpha, number_volumes*20)
+
+    interpol = interp1d(alpha_array, enthalpy, kind='quadratic', fill_value='extrapolate')
+    enthalpy_interpolated = interpol(new_alpha_range)
+
+    alpha_min_enthalpy = new_alpha_range[np.argmin(enthalpy_interpolated)]
 
     pressurized_structure = deepcopy(relaxed_structure)
     pressurized_structure.scale_lattice(pressurized_structure.volume*alpha_min_enthalpy)
@@ -184,7 +190,11 @@ def pressure_structure(relax_object, relax_struc_path, pressure_struc_path, pres
     else:
         pressurized_energy = relax_object.relax(pressurized_structure, steps=1, verbose=False)
 
-    final_energy = float(pressurized_energy['trajectory'].energies[0]/len(relaxed_structure))
+    if alpha_min_enthalpy != new_alpha_range[-1]:
+        final_energy = float(pressurized_energy['trajectory'].energies[0]/len(relaxed_structure))
+    else:
+        final_energy = 0
+
     counter = counter + 1
 
     return final_energy, counter, alpha_min_enthalpy

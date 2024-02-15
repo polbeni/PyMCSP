@@ -294,6 +294,10 @@ if comp_pressure == True:
         elif structure_file == 'cif':
             phase_file = 'structure_files/initial_structures/pressure_structures/structure-' + "{:06d}".format(struc_number) + '.cif'
 
+        if struc_energy == 0:
+            struc_energy = 'Error'
+            struc_alpha = 'Not minimized'
+
         write_in_file_pressure(file_energy, phase_file, struc_number, struc_energy, struc_alpha,
                     prec_group_det, structure_file, count)
 
