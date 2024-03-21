@@ -34,7 +34,7 @@ Some examples of resulting structures can be found in `examples` directory. Ther
 
 For each of these materials you can find the ten less energetic POSCAR files (by the energies provided by M3GNet), and the `inputs` file that we used to generate them.
 
-## Requirments
+## Requirements
 
 The code has been tested in GNU/Linux operating system (Ubuntu 22.04.3 LTS) and with Python 3.10.12. The required packages to execute PyMCSP are: 
 - numpy
