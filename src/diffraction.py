@@ -1,5 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - February 2024
+# September 2023 - March 2024
 # Version 0.3
 
 # Code to perform diffraction study
@@ -8,6 +8,7 @@
 #### Import libraries
 
 import csv
+from copy import deepcopy
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -139,61 +140,52 @@ def compute_loss_factor(range_x, intensity_theoretical, intesity_experimental):
     """
 
     function_to_integrate = np.zeros(len(range_x))
-    function_to_integrate[:] = np.abs(intesity_experimental[:] - intensity_theoretical[:])
+    function_to_integrate[:] = np.abs(intesity_experimental[:] - intensity_theoretical[:])**2
 
     T_result = integrate.trapezoid(function_to_integrate, range_x)
 
     return T_result
 
 
-def minimize_loss_displacement(range_x, min_x, max_x, intensity_theoretical, intesity_experimental, width_displ):
+def minimize_loss_vol_scale(structure, min_x, max_x, num_points, kind_interpolation, prop_vol, num_vols, intesity_experimental):
     """
-    Displices the theoretical diffractogram from -amplitude to +amplitude and returns 
-    the minimized loss factor
+    Scales the volume of the structure in the desired interval and finds the structure with minimum loss factor
 
     Inputs:
-        range_x: range of values in x
+        structure: structure pymatgen object to study
         min_x: minimum value of the x range of the interpolation
         max_x: maximum value of the x range of the interpolation
-        intensity_theoretical: intesity values of the theoretical phase
+        num_points: number of points of the interpolation
+        kind_interpolation: type of interpolation performed
+        prop_vol: proportion the volume will be increase and decrease, example: if prop_vol=0.05 it will be considered volumes between 0.95 an 1.05 the original volume
+        num_vols: number of volumes to study between (1 - prop_vol) and (1 + prop_vol)
         intensity_experimental: intesity values of the obtained experimental diffractogram
-        width_displ: interval that we want to displace
     """
 
-    jump_angle = (max_x - min_x)/len(range_x)
-    num_situations = int(width_displ/jump_angle)
+    vol_array = np.linspace(1 - prop_vol, 1 + prop_vol, num_vols)
+    loss_array = []
 
-    T_array = np.zeros(num_situations)
-    act_sit = - int(num_situations/2)
-    for it in range(len(T_array)):
-        displ_intensity = np.zeros(len(intensity_theoretical))
+    for vol in vol_array:
+        distorted = deepcopy(structure)
+        distorted.scale_lattice(distorted.volume * vol)
 
-        if act_sit < 0:
-            ind_arr = -act_sit
-            for it2 in range(len(intensity_theoretical)):
-                if it2 + ind_arr < len(intensity_theoretical):
-                    displ_intensity[it2] = intensity_theoretical[it2 + ind_arr]
-                else:
-                    displ_intensity[it2] = 0
-        elif act_sit == 0:
-            displ_intensity[:] = intensity_theoretical[:]
-        else:
-            ind_arr = act_sit
-            for it2 in range(len(intensity_theoretical)):
-                if it2 <= ind_arr:
-                    displ_intensity[it2] = 0
-                    ind_arr = ind_arr + 1
-                else:
-                    displ_intensity[it2] = intensity_theoretical[it2 + ind_arr]
-                    ind_arr = ind_arr + 1
+        pattern = calculator.get_pattern(distorted)
+        two_theta_peaks = pattern.x
+        intensity_peaks = pattern.y
 
-        T_array[it] = compute_loss_factor(range_x, displ_intensity, intesity_experimental)
+        twotheta, intensity = curve_from_peaks(two_theta_peaks, intensity_peaks, min_x, max_x, num_points, kind_interpolation)
 
-        act_sit = act_sit + 1
+        normalized_intensity = normalize_curve(twotheta, intensity)
 
-    minimized_T = np.min(T_array)
-    print(T_array)
-    return minimized_T
+        loss_factor = compute_loss_factor(twotheta, normalized_intensity, intesity_experimental)
+        loss_array.append(loss_factor)
+
+    min_loss_index = loss_array.index(min(loss_array))
+    vol_to_minimize = vol_array[min_loss_index]
+
+    return vol_to_minimize
+
+    
 
 
 # theoretical
@@ -248,10 +240,10 @@ loss_factor = compute_loss_factor(exp_twotheta, normalized_intensity, exp_normal
 
 print(loss_factor)
 
-loss_factor = minimize_loss_displacement(exp_twotheta, min_2theta, max_2theta, normalized_intensity, 
-                                         exp_normalized_intensity, displacement_range)
+#loss_factor = minimize_loss_displacement(exp_twotheta, min_2theta, max_2theta, normalized_intensity, 
+#                                         exp_normalized_intensity, displacement_range)
 
-print(loss_factor)
+#print(loss_factor)
 
 plt.figure()
 plt.plot(twotheta, normalized_intensity)
