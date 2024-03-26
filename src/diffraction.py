@@ -126,12 +126,33 @@ def peaks_experimental(curve_x, curve_y, prominance, width):
     return peak_x, peak_y
 
 
-def compute_loss_factor(range_x, intensity_theoretical, intesity_experimental):
+def compute_loss_factor(range_x, intensity_theoretical, intesity_experimental, num_peaks_theo, num_peaks_exp):
     """
     Computes the loss factor of similarity between theoretical and experimental curves
-    bigger values represent less similarity
-        T_result -> 0: best performance
-        T_result -> 4: worst performance
+    bigger values represent less similarity. This function also penalizes a big difference
+    in the number of points
+
+    Inputs:
+        range_x: range of values in x
+        intensity_theoretical: intesity values of the theoretical phase
+        intensity_experimental: intesity values of the obtained experimental diffractogram
+        num_peaks_theo: number of peaks in the theoretical diffraction curve
+        num_peaks_exp: number of peaks in the experimental diffraction curve
+    """
+
+    function_to_integrate = np.zeros(len(range_x))
+    function_to_integrate[:] = np.abs(intesity_experimental[:] - intensity_theoretical[:])**2
+
+    T_result = integrate.trapezoid(function_to_integrate, range_x) + np.abs(num_peaks_theo - num_peaks_exp)**2
+
+    return T_result
+
+
+def compute_loss_factor_minim(range_x, intensity_theoretical, intesity_experimental):
+    """
+    Computes the loss factor of similarity between theoretical and experimental curves
+    bigger values represent less similarity, without taking into account the difference 
+    in the number of peaks. This is used in minimize_loss_vol_scale function
 
     Inputs:
         range_x: range of values in x
@@ -177,7 +198,7 @@ def minimize_loss_vol_scale(structure, min_x, max_x, num_points, kind_interpolat
 
         normalized_intensity = normalize_curve(twotheta, intensity)
 
-        loss_factor = compute_loss_factor(twotheta, normalized_intensity, intesity_experimental)
+        loss_factor = compute_loss_factor_minim(twotheta, normalized_intensity, intesity_experimental)
         loss_array.append(loss_factor)
 
     min_loss_index = loss_array.index(min(loss_array))
@@ -236,16 +257,33 @@ exp_twotheta, exp_intensity = curve_from_peaks(exp_peaks_x, exp_peaks_y, min_2th
 exp_normalized_intensity = normalize_curve(exp_twotheta, exp_intensity)
 
 
-loss_factor = compute_loss_factor(exp_twotheta, normalized_intensity, exp_normalized_intensity)
-
-print(loss_factor)
-
-#loss_factor = minimize_loss_displacement(exp_twotheta, min_2theta, max_2theta, normalized_intensity, 
-#                                         exp_normalized_intensity, displacement_range)
+#loss_factor = compute_loss_factor(exp_twotheta, normalized_intensity, exp_normalized_intensity)
 
 #print(loss_factor)
 
-plt.figure()
-plt.plot(twotheta, normalized_intensity)
-plt.plot(exp_twotheta, exp_normalized_intensity)
-plt.show()
+scale_vol = minimize_loss_vol_scale(structure, min_2theta, max_2theta, total_num_points, type_interpolation, 0.05, 20, exp_normalized_intensity)
+
+distorted = deepcopy(structure)
+distorted.scale_lattice(distorted.volume * scale_vol)
+
+pattern = calculator.get_pattern(distorted)
+two_theta_peaks = pattern.x
+intensity_peaks = pattern.y
+
+twotheta, intensity = curve_from_peaks(two_theta_peaks, intensity_peaks, min_2theta, max_2theta, total_num_points, type_interpolation)
+
+normalized_intensity = normalize_curve(twotheta, intensity)
+
+num_peaks_theo = sum(1 for x in two_theta_peaks if min_2theta <= x <= max_2theta)
+num_peaks_exp = sum(1 for x in exp_peaks_x if min_2theta <= x <= max_2theta)
+
+loss_factor = compute_loss_factor(exp_twotheta, normalized_intensity, exp_normalized_intensity, num_peaks_theo, num_peaks_exp)
+print(num_peaks_theo, num_peaks_exp)
+print(loss_factor)
+
+#print(loss_factor)
+
+#plt.figure()
+#plt.plot(twotheta, normalized_intensity)
+#plt.plot(exp_twotheta, exp_normalized_intensity)
+#plt.show()
