@@ -1,5 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - February 2024
+# September 2023 - March 2024
 # Version 0.3
 
 # Main script to perfrom crystal structure prediction with PyMCSP method
@@ -472,18 +472,60 @@ if (save_all_generations == True) and (num_generations != 0):
     for struc_file in name_selected_structures:
         shutil.copy(f'structure_files/generation-{num_generations:03d}/initial_structures/' + struc_file, 
                     'structure_files/final_structures/' + struc_file)
+        
+    phases_and_energies = []
+    final_energy_file = open(f'structure_files/generation-{num_generations:03d}/final_structures/energy_ranking.txt', 'r')
+    final_energy_file.readline()
+    for it in range(len(name_selected_structures)):
+        line_file = final_energy_file.readline()
+        phases_and_energies_element = [line_file.split()[1], float(line_file.split()[2]), line_file.split()[3] + ' ' + line_file.split()[4]]
+        phases_and_energies.append(phases_and_energies_element)
+    final_energy_file.close()
     
-    shutil.copy(f'structure_files/generation-{num_generations:03d}/final_structures/energy_ranking.txt', 
-                    'structure_files/final_structures/energy_ranking.txt')
+    sorted_phases_and_energies = sorted(phases_and_energies, key=lambda x: x[1])
+
+    final_energy_file = open('structure_files/final_structures/energy_ranking.txt', 'w')
+    if structure_file == 'poscar':
+        final_energy_file.write('#       POSCAR-num       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
+    elif structure_file == 'cif':
+        final_energy_file.write('#       structure-num.cif       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
+
+    num_phase = 1
+    for phase in sorted_phases_and_energies:
+        final_energy_file.write(f'{num_phase}       {phase[0]}       {phase[1]}       {phase[2]}\n')
+        num_phase = num_phase + 1
+    
+    final_energy_file.close()
 elif (save_all_generations == False) and (num_generations != 0):
     os.mkdir('final_structures')
 
     for struc_file in name_selected_structures:
         shutil.copy(f'structure_files/generation-{num_generations:03d}/initial_structures/' + struc_file, 
                     'final_structures/' + struc_file)
+        
+    phases_and_energies = []
+    final_energy_file = open(f'structure_files/generation-{num_generations:03d}/final_structures/energy_ranking.txt', 'r')
+    final_energy_file.readline()
+    for it in range(len(name_selected_structures)):
+        line_file = final_energy_file.readline()
+        phases_and_energies_element = [line_file.split()[1], float(line_file.split()[2]), line_file.split()[3] + ' ' + line_file.split()[4]]
+        phases_and_energies.append(phases_and_energies_element)
+    final_energy_file.close()
     
-    shutil.copy(f'structure_files/generation-{num_generations:03d}/final_structures/energy_ranking.txt', 
-                    'final_structures/energy_ranking.txt')
+    sorted_phases_and_energies = sorted(phases_and_energies, key=lambda x: x[1])
+
+    final_energy_file = open('final_structures/energy_ranking.txt', 'w')
+    if structure_file == 'poscar':
+        final_energy_file.write('#       POSCAR-num       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
+    elif structure_file == 'cif':
+        final_energy_file.write('#       structure-num.cif       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
+
+    num_phase = 1
+    for phase in sorted_phases_and_energies:
+        final_energy_file.write(f'{num_phase}       {phase[0]}       {phase[1]}       {phase[2]}\n')
+        num_phase = num_phase + 1
+    
+    final_energy_file.close()
     
     shutil.rmtree('structure_files')
 
