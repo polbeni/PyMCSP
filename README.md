@@ -42,6 +42,11 @@ The code has been tested in GNU/Linux operating system (Ubuntu 22.04.3 LTS) and 
 - pyxtal
 - m3gnet 0.2.4
 
+The different modules can be downloaded manually, or instead execute the following command to install them automatically:
+```bash
+$ pip install -r requirements.txt
+```
+
 ## Installation
 
 To download the repository use:
