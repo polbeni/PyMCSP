@@ -1,12 +1,13 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
 # September 2023 - March 2024
-# Version 0.3
+# Version 0.4
 
-# Code to perform diffraction study
+# Main script to perfrom diffraction study
 
 
 #### Import libraries
 
+import os
 import csv
 from copy import deepcopy
 
@@ -19,34 +20,63 @@ from pymatgen.io.vasp import Poscar
 from pymatgen.analysis.diffraction.xrd import XRDCalculator
 from pymatgen.analysis.diffraction.neutron import NDCalculator
 
-import matplotlib.pyplot as plt
 
-##### IMPORTANT #####
-# XRDCalculator and NDCalculator have wavelength variable, for now using the default values
-# read https://pymatgen.org/pymatgen.analysis.diffraction.html
+#### Read inputs from inputs file
 
-structure = Poscar.from_file('structure_files/initial_structures/relaxed_structures/POSCAR-2223').structure
+path_structures = None
+structure_file = None
+name_exp_diff  = None
+type_diffraction = None
+wl_xray = None
+wl_neutron = None
+min_2theta = None
+max_2theta = None
+total_num_points = None
+peak_width = None
+type_interpolation = None
+prominance_exp = None
+width_exp = None
+prop_vol = None
+num_vols = None
+coef_quad = None
 
-##### Variables inputs #####
-path_structures = 'structure_files/initial_structures/relaxed_structures/'
-structure_file = 'poscar'
-name_exp_diff = 'diff_exp.csv' # the experimental diffractogram has to be a csv file with two columns, 2theta and intensity
-type_diffraction = 'x-ray'
-wl_xray = 'CuKa' # default value
-wl_neutron = 1.54184 # default value
-min_2theta = 20
-max_2theta = 60
-total_num_points = 2000 # recommended not decrease the value
-peak_width = 0.25 
-type_interpolation = 'linear' # recommended not touch
-prominance_exp = 100
-width_exp = 5
-displacement_range = 5
-############################
+inputs = open('inputs_diffraction', "r")
 
-def curve_from_peaks(peaks_x, peaks_y, min_x, max_x, num_points, kind_interpolation):
+variables = [None]*16
+
+for it in range(12):
+    inputs.readline()
+
+for it in range(len(variables)):
+    line = inputs.readline()
+
+    variables[it] = line.split()[2]
+
+inputs.close()
+
+path_structures = variables[0]
+structure_file = variables[1]
+name_exp_diff  = variables[2]
+type_diffraction = variables[3]
+wl_xray = variables[4]
+wl_neutron = float(variables[5])
+min_2theta = float(variables[6])
+max_2theta = float(variables[7])
+total_num_points = int(variables[8])
+peak_width = float(variables[9])
+type_interpolation = variables[10]
+prominance_exp = float(variables[11])
+width_exp = float(variables[12])
+prop_vol = float(variables[13])
+num_vols = int(variables[14])
+coef_quad = float(variables[15])
+
+
+#### Functions
+
+def curve_from_peaks(prev_peaks_x, prev_peaks_y, min_x, max_x, num_points, kind_interpolation, peak_width):
     """
-    Returns a curve from a given set of peaks
+    Returns a curve from a given set of peaks (neglects those peaks that are small, smaller that 1e-1)
 
     Inputs:
         peaks_x: value of the peaks in x range
@@ -55,7 +85,14 @@ def curve_from_peaks(peaks_x, peaks_y, min_x, max_x, num_points, kind_interpolat
         max_x: maximum value of the x range of the interpolation
         num_points: number of points of the interpolation
         kind_interpolation: type of interpolation performed
+        peak_width: width of the peak
     """
+    peaks_x = []
+    peaks_y = []
+    for peak in range(len(prev_peaks_y)):
+        if prev_peaks_y[peak] >= 1e-1:
+            peaks_x.append(prev_peaks_x[peak])
+            peaks_y.append(prev_peaks_y[peak])
 
     curve_x = np.zeros(3*len(peaks_x) + 2)
     curve_y = np.zeros(3*len(peaks_x) + 2)
@@ -126,7 +163,7 @@ def peaks_experimental(curve_x, curve_y, prominance, width):
     return peak_x, peak_y
 
 
-def compute_loss_factor(range_x, intensity_theoretical, intesity_experimental, num_peaks_theo, num_peaks_exp):
+def compute_loss_factor(range_x, intensity_theoretical, intesity_experimental, num_peaks_theo, num_peaks_exp, coef_quad):
     """
     Computes the loss factor of similarity between theoretical and experimental curves
     bigger values represent less similarity. This function also penalizes a big difference
@@ -138,12 +175,13 @@ def compute_loss_factor(range_x, intensity_theoretical, intesity_experimental, n
         intensity_experimental: intesity values of the obtained experimental diffractogram
         num_peaks_theo: number of peaks in the theoretical diffraction curve
         num_peaks_exp: number of peaks in the experimental diffraction curve
+        coef_quad: quadratic coefficient for difference of peak number
     """
 
     function_to_integrate = np.zeros(len(range_x))
     function_to_integrate[:] = np.abs(intesity_experimental[:] - intensity_theoretical[:])**2
 
-    T_result = integrate.trapezoid(function_to_integrate, range_x) + np.abs(num_peaks_theo - num_peaks_exp)**2
+    T_result = integrate.trapezoid(function_to_integrate, range_x) + coef_quad*np.abs(num_peaks_theo - num_peaks_exp)**2
 
     return T_result
 
@@ -168,7 +206,7 @@ def compute_loss_factor_minim(range_x, intensity_theoretical, intesity_experimen
     return T_result
 
 
-def minimize_loss_vol_scale(structure, min_x, max_x, num_points, kind_interpolation, prop_vol, num_vols, intesity_experimental):
+def minimize_loss_vol_scale(structure, min_x, max_x, num_points, kind_interpolation, peak_width, prop_vol, num_vols, intesity_experimental):
     """
     Scales the volume of the structure in the desired interval and finds the structure with minimum loss factor
 
@@ -178,6 +216,7 @@ def minimize_loss_vol_scale(structure, min_x, max_x, num_points, kind_interpolat
         max_x: maximum value of the x range of the interpolation
         num_points: number of points of the interpolation
         kind_interpolation: type of interpolation performed
+        peak_width: width of the peak
         prop_vol: proportion the volume will be increase and decrease, example: if prop_vol=0.05 it will be considered volumes between 0.95 an 1.05 the original volume
         num_vols: number of volumes to study between (1 - prop_vol) and (1 + prop_vol)
         intensity_experimental: intesity values of the obtained experimental diffractogram
@@ -194,7 +233,7 @@ def minimize_loss_vol_scale(structure, min_x, max_x, num_points, kind_interpolat
         two_theta_peaks = pattern.x
         intensity_peaks = pattern.y
 
-        twotheta, intensity = curve_from_peaks(two_theta_peaks, intensity_peaks, min_x, max_x, num_points, kind_interpolation)
+        twotheta, intensity = curve_from_peaks(two_theta_peaks, intensity_peaks, min_x, max_x, num_points, kind_interpolation, peak_width)
 
         normalized_intensity = normalize_curve(twotheta, intensity)
 
@@ -206,30 +245,8 @@ def minimize_loss_vol_scale(structure, min_x, max_x, num_points, kind_interpolat
 
     return vol_to_minimize
 
-    
 
-
-# theoretical
-
-if type_diffraction == 'x-ray':
-    calculator = XRDCalculator(wavelength=wl_xray)
-elif type_diffraction == 'neutron':
-    calculator = NDCalculator(wavelength=wl_neutron)
-else:
-    print('Not valid type_diffraction value')
-
-
-pattern = calculator.get_pattern(structure)
-
-two_theta_peaks = pattern.x
-intensity_peaks = pattern.y
-
-twotheta, intensity = curve_from_peaks(two_theta_peaks, intensity_peaks, min_2theta, max_2theta, total_num_points, type_interpolation)
-
-normalized_intensity = normalize_curve(twotheta, intensity)
-
-
-# experimental
+#### Experimental diffractogram
 
 exp_2theta = []
 exp_int = []
@@ -252,38 +269,95 @@ exp_int = np.array(exp_int)
 
 exp_peaks_x, exp_peaks_y = peaks_experimental(exp_2theta, exp_int, prominance_exp, width_exp)
 
-exp_twotheta, exp_intensity = curve_from_peaks(exp_peaks_x, exp_peaks_y, min_2theta, max_2theta, total_num_points, type_interpolation)
+exp_twotheta, exp_intensity = curve_from_peaks(exp_peaks_x, exp_peaks_y, min_2theta, max_2theta, total_num_points, type_interpolation, peak_width)
 
 exp_normalized_intensity = normalize_curve(exp_twotheta, exp_intensity)
 
 
-#loss_factor = compute_loss_factor(exp_twotheta, normalized_intensity, exp_normalized_intensity)
+#### Load calculator
 
-#print(loss_factor)
+if type_diffraction == 'x-ray':
+    calculator = XRDCalculator(wavelength=wl_xray)
+elif type_diffraction == 'neutron':
+    calculator = NDCalculator(wavelength=wl_neutron)
+else:
+    print('Not valid type_diffraction value')
 
-scale_vol = minimize_loss_vol_scale(structure, min_2theta, max_2theta, total_num_points, type_interpolation, 0.05, 20, exp_normalized_intensity)
 
-distorted = deepcopy(structure)
-distorted.scale_lattice(distorted.volume * scale_vol)
+#### Theoretical loop
+    
+num_structures = 0
 
-pattern = calculator.get_pattern(distorted)
-two_theta_peaks = pattern.x
-intensity_peaks = pattern.y
+for path in os.listdir(path_structures):
+    if os.path.isfile(os.path.join(path_structures, path)):
+        num_structures = num_structures + 1
 
-twotheta, intensity = curve_from_peaks(two_theta_peaks, intensity_peaks, min_2theta, max_2theta, total_num_points, type_interpolation)
+num_structures = num_structures - 1
 
-normalized_intensity = normalize_curve(twotheta, intensity)
+structures_list = []
+final_energy_file = open(f'{path_structures}/energy_ranking.txt', 'r')
+final_energy_file.readline()
+for it in range(num_structures):
+    line_file = final_energy_file.readline()
+    structure_element = [line_file.split()[1], None, line_file.split()[3] + ' ' + line_file.split()[4]]
+    structures_list.append(structure_element)
+final_energy_file.close()
 
-num_peaks_theo = sum(1 for x in two_theta_peaks if min_2theta <= x <= max_2theta)
-num_peaks_exp = sum(1 for x in exp_peaks_x if min_2theta <= x <= max_2theta)
+diffraction_results = open('diffraction_results.txt', 'w')
+if structure_file == 'poscar':
+    diffraction_results.write('#       POSCAR-num       Loss factor       Space Group (Hermann-Mauguin)\n')
+elif structure_file == 'cif':
+    diffraction_results.write('#       structure-num.cif       Loss factor       Space Group (Hermann-Mauguin)\n')
 
-loss_factor = compute_loss_factor(exp_twotheta, normalized_intensity, exp_normalized_intensity, num_peaks_theo, num_peaks_exp)
-print(num_peaks_theo, num_peaks_exp)
-print(loss_factor)
+num_iteration = 1
+for struc in structures_list:
+    structure = Poscar.from_file(f'{path_structures}/{struc[0]}').structure
 
-#print(loss_factor)
+    pattern = calculator.get_pattern(structure)
 
-#plt.figure()
-#plt.plot(twotheta, normalized_intensity)
-#plt.plot(exp_twotheta, exp_normalized_intensity)
-#plt.show()
+    two_theta_peaks = pattern.x
+    intensity_peaks = pattern.y
+
+    twotheta, intensity = curve_from_peaks(two_theta_peaks, intensity_peaks, min_2theta, max_2theta, total_num_points, type_interpolation, peak_width)
+
+    normalized_intensity = normalize_curve(twotheta, intensity)
+
+    scale_vol = minimize_loss_vol_scale(structure, min_2theta, max_2theta, total_num_points, type_interpolation, peak_width, prop_vol, num_vols, exp_normalized_intensity)
+
+    distorted = deepcopy(structure)
+    distorted.scale_lattice(distorted.volume * scale_vol)
+
+    pattern = calculator.get_pattern(distorted)
+    two_theta_peaks = pattern.x
+    intensity_peaks = pattern.y
+
+    peaks_x = []
+    peaks_y = []
+    for peak in range(len(intensity_peaks)):
+        if intensity_peaks[peak] >= 1e-1:
+            peaks_x.append(two_theta_peaks[peak])
+            peaks_y.append(intensity_peaks[peak])
+
+    twotheta, intensity = curve_from_peaks(two_theta_peaks, intensity_peaks, min_2theta, max_2theta, total_num_points, type_interpolation, peak_width)
+
+    normalized_intensity = normalize_curve(twotheta, intensity)
+
+    num_peaks_theo = sum(1 for x in peaks_x if min_2theta <= x <= max_2theta)
+    num_peaks_exp = sum(1 for x in peaks_y if min_2theta <= x <= max_2theta)
+
+    loss_factor = compute_loss_factor(exp_twotheta, normalized_intensity, exp_normalized_intensity, num_peaks_theo, num_peaks_exp, coef_quad)
+
+    struc[1] = loss_factor
+
+
+    print(f'Loss factor computed for the structure number {num_iteration} of a total of {num_structures} structures.')
+    num_iteration = num_iteration + 1
+
+sorted_structures = sorted(structures_list, key=lambda x: x[1])
+
+num_phase = 1
+for phase in sorted_structures:
+    diffraction_results.write(f'{num_phase}       {phase[0]}       {phase[1]}       {phase[2]}\n')
+    num_phase = num_phase + 1
+
+diffraction_results.close()

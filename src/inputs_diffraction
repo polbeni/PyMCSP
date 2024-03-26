@@ -1,0 +1,28 @@
+# Pol Benítez Colominas, Universitat Politècnica de Catalunya
+# September 2023 - March 2024
+# Version 0.4
+
+# Inputs file for diffraction study
+
+# Adjust the values of the variables
+# IMPORTANT: Do not change the structure of this file and let an space between
+# the variable name and equal sign, and between equal sign and the value
+# IMPORTANT 2: XRDCalculator and NDCalculator have wavelength variable, for now using the default values
+# read https://pymatgen.org/pymatgen.analysis.diffraction.html
+
+path_structures         =  structure_files/initial_structures/relaxed_structures/
+structure_file          =  poscar
+name_exp_diff           =  diff_exp.csv # the experimental diffractogram has to be a csv file with two columns, 2theta and intensity
+type_diffraction        =  x-ray
+wl_xray                 =  CuKa # default value
+wl_neutron              =  1.54184 # default value
+min_2theta              =  20
+max_2theta              =  60
+total_num_points        =  2000 # recommended not decrease the value
+peak_width              =  0.25 
+type_interpolation      =  linear # recommended not touch
+prominance_exp          =  100
+width_exp               =  5
+prop_vol                =  0.05
+num_vols                =  20
+coef_quad               =  0.01
