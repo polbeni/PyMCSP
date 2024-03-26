@@ -1,5 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - March 2024
+# September 2023 - February 2024
 # Version 0.3
 
 # Main script to perfrom crystal structure prediction with PyMCSP method
@@ -414,7 +414,7 @@ if num_generations != 0:
 
         path_previous_energy_file = {
             'initial': 'structure_files/initial_structures/relaxed_structures/energy_ranking.txt',
-            'not_initial': f'structure_files/generation-{num_gen:03d}/relaxed_structures/energy_ranking.txt'
+            'not_initial': f'structure_files/generation-{num_gen:03d}/final_structures/energy_ranking.txt'
         }
 
         if num_gen == 0:
