@@ -1,5 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - February 2024
+# September 2023 - March 2024
 # Version 0.3
 
 # Main script to perfrom crystal structure prediction with PyMCSP method
@@ -381,7 +381,7 @@ if num_generations != 0:
 
         for struc_file in name_selected_structures:
             path_struc_file = f'structure_files/generation-{num_gen + 1:03d}/initial_structures/' + struc_file
-            path_dist_file = f'structure_files/generation-{num_gen + 1:03d}/distorsed_structures/' + struc_file
+            path_dist_file = f'structure_files/generation-{num_gen + 1:03d}/distorted_structures/' + struc_file
 
             structure_distortion(path_struc_file, max_disp, structure_file, path_dist_file)
 
@@ -396,7 +396,7 @@ if num_generations != 0:
             relax_ini()
 
         for struc_file in name_selected_structures:
-            path_dist_file = f'structure_files/generation-{num_gen + 1:03d}/distorsed_structures/' + struc_file
+            path_dist_file = f'structure_files/generation-{num_gen + 1:03d}/distorted_structures/' + struc_file
             path_relax_file = f'structure_files/generation-{num_gen + 1:03d}/relaxed_structures/' + struc_file
 
             relaxed_energy = relax_structure_gen(relaxer, path_dist_file, path_relax_file, max_ionic_steps,

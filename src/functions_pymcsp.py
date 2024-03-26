@@ -1,5 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - February 2024
+# September 2023 - March 2024
 # Version 0.3
 
 # Functions file
@@ -273,7 +273,7 @@ def create_dir_generation(number_generation):
 
     os.mkdir(f'structure_files/generation-{number_generation:03d}')
     os.mkdir(f'structure_files/generation-{number_generation:03d}/initial_structures')
-    os.mkdir(f'structure_files/generation-{number_generation:03d}/distorsed_structures')
+    os.mkdir(f'structure_files/generation-{number_generation:03d}/distorted_structures')
     os.mkdir(f'structure_files/generation-{number_generation:03d}/relaxed_structures')
     os.mkdir(f'structure_files/generation-{number_generation:03d}/final_structures')
 
