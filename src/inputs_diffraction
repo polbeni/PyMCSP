@@ -13,6 +13,9 @@
 path_structures         =  structure_files/initial_structures/relaxed_structures/
 structure_file          =  poscar
 name_exp_diff           =  diff_exp.csv # the experimental diffractogram has to be a csv file with two columns, 2theta and intensity
+clean_substrate         =  True
+path_substrate          =  SnO2.poscar
+tolerance_subs          =  0.5
 type_diffraction        =  x-ray
 wl_xray                 =  CuKa # default value
 wl_neutron              =  1.54184 # default value

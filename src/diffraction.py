@@ -28,6 +28,9 @@ from pymatgen.analysis.diffraction.neutron import NDCalculator
 path_structures = None
 structure_file = None
 name_exp_diff  = None
+clean_substrate = None
+path_substrate = None
+tolerance_subs = None
 type_diffraction = None
 wl_xray = None
 wl_neutron = None
@@ -44,7 +47,7 @@ coef_quad = None
 
 inputs = open('inputs_diffraction', "r")
 
-variables = [None]*16
+variables = [None]*19
 
 for it in range(12):
     inputs.readline()
@@ -52,26 +55,34 @@ for it in range(12):
 for it in range(len(variables)):
     line = inputs.readline()
 
-    variables[it] = line.split()[2]
+    if line.split()[2] == 'True':
+        variables[it] = True
+    elif line.split()[2] == 'False':
+        variables[it] = False
+    else:
+        variables[it] = line.split()[2]
 
 inputs.close()
 
 path_structures = variables[0]
 structure_file = variables[1]
 name_exp_diff  = variables[2]
-type_diffraction = variables[3]
-wl_xray = variables[4]
-wl_neutron = float(variables[5])
-min_2theta = float(variables[6])
-max_2theta = float(variables[7])
-total_num_points = int(variables[8])
-peak_width = float(variables[9])
-type_interpolation = variables[10]
-prominance_exp = float(variables[11])
-width_exp = float(variables[12])
-prop_vol = float(variables[13])
-num_vols = int(variables[14])
-coef_quad = float(variables[15])
+clean_substrate = variables[3]
+path_substrate = variables[4]
+tolerance_subs = float(variables[5])
+type_diffraction = variables[6]
+wl_xray = variables[7]
+wl_neutron = float(variables[8])
+min_2theta = float(variables[9])
+max_2theta = float(variables[10])
+total_num_points = int(variables[11])
+peak_width = float(variables[12])
+type_interpolation = variables[13]
+prominance_exp = float(variables[14])
+width_exp = float(variables[15])
+prop_vol = float(variables[16])
+num_vols = int(variables[17])
+coef_quad = float(variables[18])
 
 
 #### Functions
@@ -247,6 +258,45 @@ def minimize_loss_vol_scale(structure, min_x, max_x, num_points, kind_interpolat
 
     return vol_to_minimize
 
+def remove_substrate(exp_peaks_x, exp_peaks_y, subs_peaks_x, tolerance):
+    """
+    Returns the experimental peaks without the peaks related with the substrate, to do this
+    the distance between two peaks is computed and if the value it is below a given tolerance
+    that peak will be discarted
+
+    Inputs:
+        exp_peaks_x: 2theta value of the experimental peaks
+        exp_peaks_y: intensity value of the experimental peaks
+        subs_peaks_x: 2theta value of the theoretical substrate peaks
+        tolerance: threshold value to discard a peak
+    """
+
+    clean_peaks_x = []
+    clean_peaks_y = []
+
+    for iter in range(len(exp_peaks_x)):
+        substrate_peak = False
+        for iter2 in range(len(subs_peaks_x)):
+            peak_distance = np.abs(exp_peaks_x[iter] - subs_peaks_x[iter2])
+            if peak_distance <= tolerance:
+                substrate_peak = True
+        
+        if substrate_peak == False:
+            clean_peaks_x.append(exp_peaks_x[iter])
+            clean_peaks_y.append(exp_peaks_y[iter])
+
+    return clean_peaks_x, clean_peaks_y
+
+
+#### Load calculator
+
+if type_diffraction == 'x-ray':
+    calculator = XRDCalculator(wavelength=wl_xray)
+elif type_diffraction == 'neutron':
+    calculator = NDCalculator(wavelength=wl_neutron)
+else:
+    print('Not valid type_diffraction value')
+
 
 #### Experimental diffractogram
 
@@ -271,19 +321,23 @@ exp_int = np.array(exp_int)
 
 exp_peaks_x, exp_peaks_y = peaks_experimental(exp_2theta, exp_int, prominance_exp, width_exp)
 
-exp_twotheta, exp_intensity = curve_from_peaks(exp_peaks_x, exp_peaks_y, min_2theta, max_2theta, total_num_points, type_interpolation, peak_width)
+if clean_substrate == True:
+    substrate = Poscar.from_file(path_substrate).structure
+
+    pattern = calculator.get_pattern(substrate)
+
+    two_theta_peaks = pattern.x
+
+    clean_x, clean_y = remove_substrate(exp_peaks_x, exp_peaks_y, two_theta_peaks, tolerance_subs)
+
+    exp_twotheta, exp_intensity = curve_from_peaks(clean_x, clean_y, min_2theta, max_2theta, total_num_points, type_interpolation, peak_width)
+else:
+    exp_twotheta, exp_intensity = curve_from_peaks(exp_peaks_x, exp_peaks_y, min_2theta, max_2theta, total_num_points, type_interpolation, peak_width)
 
 exp_normalized_intensity = normalize_curve(exp_twotheta, exp_intensity)
 
 
-#### Load calculator
 
-if type_diffraction == 'x-ray':
-    calculator = XRDCalculator(wavelength=wl_xray)
-elif type_diffraction == 'neutron':
-    calculator = NDCalculator(wavelength=wl_neutron)
-else:
-    print('Not valid type_diffraction value')
 
 
 #### Theoretical loop
@@ -353,7 +407,7 @@ def process_item(struc):
 
     with counter.get_lock():
         counter.value += 1
-        print(f'Loss factor computed for the structure number {counter.value} of a total of {num_structures} structures.')
+        print(f'Loss factor computed for the structure number {counter.value} of {num_structures} structures.')
 
     return struc
 
