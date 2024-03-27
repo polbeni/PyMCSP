@@ -355,15 +355,15 @@ final_energy_file = open(f'{path_structures}/energy_ranking.txt', 'r')
 final_energy_file.readline()
 for it in range(num_structures):
     line_file = final_energy_file.readline()
-    structure_element = [line_file.split()[1], None, line_file.split()[3] + ' ' + line_file.split()[4]]
+    structure_element = [line_file.split()[1], None, float(line_file.split()[2]), line_file.split()[3] + ' ' + line_file.split()[4]]
     structures_list.append(structure_element)
 final_energy_file.close()
 
 diffraction_results = open('diffraction_results.txt', 'w')
 if structure_file == 'poscar':
-    diffraction_results.write('#       POSCAR-num       Loss factor       Space Group (Hermann-Mauguin)\n')
+    diffraction_results.write('#       POSCAR-num       Loss factor      energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
 elif structure_file == 'cif':
-    diffraction_results.write('#       structure-num.cif       Loss factor       Space Group (Hermann-Mauguin)\n')
+    diffraction_results.write('#       structure-num.cif       Loss factor      energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
 
 
 def process_item(struc):
@@ -407,7 +407,7 @@ def process_item(struc):
 
     with counter.get_lock():
         counter.value += 1
-        print(f'Loss factor computed for the structure number {counter.value} of {num_structures} structures.')
+        print(f'Loss factor computed for the structure number {counter.value} of {num_structures}.')
 
     return struc
 
@@ -432,7 +432,7 @@ sorted_structures = sorted(elements, key=lambda x: x[1])
 
 num_phase = 1
 for phase in sorted_structures:
-    diffraction_results.write(f'{num_phase}       {phase[0]}       {phase[1]}       {phase[2]}\n')
+    diffraction_results.write(f'{num_phase}       {phase[0]}       {phase[1]}       {phase[2]}       {phase[3]}\n')
     num_phase = num_phase + 1
 
 diffraction_results.close()
