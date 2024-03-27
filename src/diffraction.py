@@ -10,6 +10,8 @@
 import os
 import csv
 from copy import deepcopy
+import multiprocessing
+from functools import partial
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -309,8 +311,8 @@ if structure_file == 'poscar':
 elif structure_file == 'cif':
     diffraction_results.write('#       structure-num.cif       Loss factor       Space Group (Hermann-Mauguin)\n')
 
-num_iteration = 1
-for struc in structures_list:
+
+def process_item(struc):
     structure = Poscar.from_file(f'{path_structures}/{struc[0]}').structure
 
     pattern = calculator.get_pattern(structure)
@@ -349,11 +351,30 @@ for struc in structures_list:
 
     struc[1] = loss_factor
 
+    with counter.get_lock():
+        counter.value += 1
+        print(f'Loss factor computed for the structure number {counter.value} of a total of {num_structures} structures.')
 
-    print(f'Loss factor computed for the structure number {num_iteration} of a total of {num_structures} structures.')
-    num_iteration = num_iteration + 1
+    return struc
 
-sorted_structures = sorted(structures_list, key=lambda x: x[1])
+def init_counter(counter_):
+    global counter
+    counter = counter_
+
+def get_counter_lock():
+    return counter.get_lock()
+
+if __name__ == "__main__":
+    elements = structures_list
+
+num_iteration = 1
+with multiprocessing.Pool(initializer=init_counter, initargs=(multiprocessing.Value('i', 0),)) as pool:
+    results = pool.map(process_item, elements)
+
+    for i, result in enumerate(results):
+        elements[i] = result
+    
+sorted_structures = sorted(elements, key=lambda x: x[1])
 
 num_phase = 1
 for phase in sorted_structures:
