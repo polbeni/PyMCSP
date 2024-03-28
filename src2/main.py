@@ -43,7 +43,7 @@ while finish_condition == False:
         option_2(inputs_var)
         correct = input()
         if correct == 'yes':
-            #print('start')
+            pressure_computations(inputs_var)
             finish_condition = True
         elif correct == 'no':
             finish_condition = True
@@ -55,7 +55,7 @@ while finish_condition == False:
         option_3(inputs_var)
         correct = input()
         if correct == 'yes':
-            #print('start')
+            generations_loop(inputs_var)
             finish_condition = True
         elif correct == 'no':
             finish_condition = True

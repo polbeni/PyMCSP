@@ -687,6 +687,16 @@ def plot_exp_tuned(prominance, width, exp_path):
     return
 
 
+def relaxer_function():
+    """
+    Calls M3GNet relaxer function
+    
+    """
+    relaxer = Relaxer()
+
+    return relaxer
+
+
 def csp_study(inputs):
     """
     Performs crystal structure prediction
@@ -785,8 +795,9 @@ def csp_study(inputs):
     if print_terminal_outputs == True:
         struc_gen_end()
 
-
+    
     #### Relax the first structures
+    relaxer = relaxer_function()
 
     dir_path = 'structure_files/initial_structures/generated_structures/'
 
@@ -801,7 +812,7 @@ def csp_study(inputs):
 
     os.mkdir('structure_files/initial_structures/relaxed_structures/')
 
-    relaxer = Relaxer()
+    relaxer_function()
 
     phase_energy_array = np.zeros((num_structures,2))
     count = 0
@@ -867,8 +878,6 @@ def csp_study(inputs):
             print(f'Number of structures to study with pressure conditions: {num_structures - 1}')
 
         os.mkdir('structure_files/initial_structures/pressure_structures/')
-
-        relaxer = Relaxer()
 
         pressure_energy_array = np.zeros((num_structures - 1,3))
         count = 0
@@ -1163,6 +1172,426 @@ def csp_study(inputs):
 
     return
 
+
+def pressure_computations(inputs):
+    """
+    Performs pressure computations for an already found structures
+
+    Inputs:
+        inputs: array with all the input variables from inputs_csp file
+    """
+
+    star_time = time.time()
+
+
+    comp_pressure = inputs[6]
+    pressure = float(inputs[7])
+    num_volumes = int(inputs[8])
+    minimum_volume = float(inputs[9]) 
+    maximum_volume = float(inputs[10])
+    print_terminal_outputs = inputs[11]
+    save_log_file = inputs[12]
+    structure_file = inputs[14]
+    prec_group_det = float(inputs[15])
+
+    relaxer = relaxer_function()
+
+
+    if comp_pressure == True:
+        dir_path = 'structure_files/initial_structures/relaxed_structures/'
+
+        num_structures = 0
+
+        for path in os.listdir(dir_path):
+            if os.path.isfile(os.path.join(dir_path, path)):
+                num_structures = num_structures + 1
+
+        if print_terminal_outputs == True:
+            print(f'Number of structures to study with pressure conditions: {num_structures - 1}')
+
+        if os.path.exists('structure_files/pressure_structures/'):
+            shutil.rmtree('structure_files/pressure_structures/')
+        os.mkdir('structure_files/pressure_structures/')
+
+        pressure_energy_array = np.zeros((num_structures - 1,3))
+        count = 0
+
+        if print_terminal_outputs == True:
+            pressure_ini()
+
+        for num_struc in range(num_structures - 1):
+            if structure_file == 'poscar':
+                relaxed_path = 'structure_files/initial_structures/relaxed_structures/POSCAR-' + "{:06d}".format(num_struc + 1)
+                pressure_path = 'structure_files/pressure_structures/POSCAR-' + "{:06d}".format(num_struc + 1)
+            elif structure_file == 'cif':
+                relaxed_path = 'structure_files/initial_structures/relaxed_structures/structure-' + "{:06d}".format(num_struc + 1) + '.cif'
+                pressure_path = 'structure_files/pressure_structures/structure-' + "{:06d}".format(num_struc + 1) + '.cif'
+
+            pressure_energy, count, alpha = pressure_structure(relaxer, relaxed_path, pressure_path, pressure, num_volumes, minimum_volume,
+                                                            maximum_volume, print_terminal_outputs, structure_file, count)
+            
+            pressure_energy_array[count - 1, 0] = int(count)
+            pressure_energy_array[count - 1, 1] = pressure_energy
+            pressure_energy_array[count - 1, 2] = alpha
+
+        if print_terminal_outputs == True:
+            pressure_end()
+
+        sorted_indices_pressure = np.argsort(pressure_energy_array[:,1])
+        phase_energy_sorted_pressure = pressure_energy_array[sorted_indices_pressure]
+
+        file_energy = open('structure_files/pressure_structures/energy_ranking_pressure.txt', 'w')
+        if structure_file == 'poscar':
+            file_energy.write('#       POSCAR-num       energy per atom (eV)       alpha       Space Group (Hermann-Mauguin)\n')
+        elif structure_file == 'cif':
+            file_energy.write('#       structure-num.cif       energy per atom (eV)       alpha       Space Group (Hermann-Mauguin)\n')
+
+        count = 1
+        for num_struc in range(num_structures - 1):
+            struc_number = int(phase_energy_sorted_pressure[num_struc,0])
+            struc_energy = phase_energy_sorted_pressure[num_struc,1]
+            struc_alpha = phase_energy_sorted_pressure[num_struc,2]
+            if structure_file == 'poscar':
+                phase_file = 'structure_files/pressure_structures/POSCAR-' + "{:06d}".format(struc_number)
+            elif structure_file == 'cif':
+                phase_file = 'structure_files/pressure_structures/structure-' + "{:06d}".format(struc_number) + '.cif'
+
+            if struc_energy == 0:
+                struc_energy = 'Error'
+                struc_alpha = 'Not minimized'
+
+            write_in_file_pressure(file_energy, phase_file, struc_number, struc_energy, struc_alpha,
+                        prec_group_det, structure_file, count)
+
+            count = count + 1
+
+        file_energy.close()
+
+    ### Save the log file
+        
+    log_file = 'output.log'
+
+    if save_log_file == True:
+        log_file_handle = open(log_file, "w")
+
+        class Tee:
+            def __init__(self, *files):
+                self.files = files
+
+            def write(self, text):
+                for file in self.files:
+                    file.write(text)
+                    file.flush()
+
+            def flush(self):
+                for file in self.files:
+                    file.flush()
+
+        sys.stdout = Tee(sys.stdout, log_file_handle)
+
+    end_time = time.time()
+    elapsed_time = end_time - star_time
+
+    if print_terminal_outputs == True:
+        print(f'Elapsed time: {elapsed_time:.3f} seconds')
+
+
+    ### Close the log file
+        
+    if save_log_file == True:
+        log_file_handle.close()
+        sys.stdout = sys.__stdout__
+
+    return
+
+
+def generations_loop(inputs):
+    """
+    Performs generations loop for an already found structures
+
+    Inputs:
+        inputs: array with all the input variables from inputs_csp file
+    """
+
+    star_time = time.time()
+
+    max_ionic_steps = int(inputs[5])
+    print_terminal_outputs = inputs[11]
+    save_log_file = inputs[12]
+    save_all_generations = inputs[13]
+    structure_file = inputs[14]
+    prec_group_det = float(inputs[15])
+    num_generations = int(inputs[16])
+    surviving_phases = float(inputs[17])
+    max_disp = float(inputs[18])
+
+    relaxer = relaxer_function()
+
+    #### Start the generation loop
+
+    files_in_dir = os.listdir('structure_files/initial_structures/relaxed_structures/')
+
+    number_ini_struc = 0
+    if structure_file == 'poscar':
+        for filename in files_in_dir:
+            if filename.startswith('POSCAR-'):
+                number_ini_struc = number_ini_struc + 1
+    elif structure_file == 'cif':
+        for filename in files_in_dir:
+            if filename.startswith('structure-'):
+                number_ini_struc = number_ini_struc + 1
+
+    number_surv_struc = int(number_ini_struc*surviving_phases)
+
+    if os.path.exists('structure_files/generations/'):
+            shutil.rmtree('structure_files/generations/')
+            os.mkdir('structure_files/generations/')
+
+    if num_generations != 0:
+
+        if print_terminal_outputs == True:
+            gen_ini()
+
+        for num_gen in range(num_generations):
+
+            if print_terminal_outputs == True:
+                gen_ini_actual(num_gen + 1)
+
+            create_dir_generation(num_gen + 1)
+
+            name_dir_initial_struc = {
+                'initial': 'structure_files/initial_structures/relaxed_structures/',
+                'not_initial': f'structure_files/generations/generation-{num_gen:03d}/final_structures'
+            }
+
+            path_destination = f'structure_files/generations/generation-{num_gen + 1:03d}/initial_structures/'
+            if structure_file == 'poscar':
+                file_prefix = 'POSCAR-'
+            elif structure_file == 'cif':
+                file_prefix = 'structure-'
+
+            if  num_gen == 0:
+                path_initial_struc = name_dir_initial_struc['initial']
+
+                name_selected_structures = []
+
+                energy_file = open('structure_files/initial_structures/relaxed_structures/energy_ranking.txt', "r")
+
+                energy_file.readline()
+
+                for num_str in range(number_surv_struc):
+                    actual_line = energy_file.readline()
+
+                    name_selected_structures.append(actual_line.split()[1])
+                
+
+                energy_file.close()
+                
+                for filename in name_selected_structures:
+                    if filename.startswith(file_prefix):
+                        source_file = os.path.join(path_initial_struc, filename)
+                        destination_file = os.path.join(path_destination, filename)
+                        shutil.copy(source_file, destination_file)
+
+            else:
+                path_initial_struc = name_dir_initial_struc['not_initial']
+
+                files_in_dir = os.listdir(path_initial_struc)
+
+                for filename in files_in_dir:
+                    if filename.startswith(file_prefix):
+                        source_file = os.path.join(path_initial_struc, filename)
+                        destination_file = os.path.join(path_destination, filename)
+                        shutil.copy(source_file, destination_file)
+
+            for struc_file in name_selected_structures:
+                path_struc_file = f'structure_files/generations/generation-{num_gen + 1:03d}/initial_structures/' + struc_file
+                path_dist_file = f'structure_files/generations/generation-{num_gen + 1:03d}/distorted_structures/' + struc_file
+
+                structure_distortion(path_struc_file, max_disp, structure_file, path_dist_file)
+
+            file_energy = open(f'structure_files/generations/generation-{num_gen + 1:03d}/relaxed_structures/energy_ranking.txt', 'w')
+            if structure_file == 'poscar':
+                file_energy.write('#       POSCAR-num       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
+            elif structure_file == 'cif':
+                file_energy.write('#       structure-num.cif       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
+            count = 1
+
+            if print_terminal_outputs == True:
+                relax_ini()
+
+            for struc_file in name_selected_structures:
+                path_dist_file = f'structure_files/generations/generation-{num_gen + 1:03d}/distorted_structures/' + struc_file
+                path_relax_file = f'structure_files/generations/generation-{num_gen + 1:03d}/relaxed_structures/' + struc_file
+
+                relaxed_energy = relax_structure_gen(relaxer, path_dist_file, path_relax_file, max_ionic_steps,
+                                                    print_terminal_outputs, structure_file)
+                
+                write_in_file_gen(file_energy, path_relax_file, struc_file, relaxed_energy, 
+                                prec_group_det, structure_file, count)
+                
+                count = count + 1
+
+            if print_terminal_outputs == True:
+                relax_end()
+
+            file_energy.close()
+
+            path_previous_energy_file = {
+                'initial': 'structure_files/initial_structures/relaxed_structures/energy_ranking.txt',
+                'not_initial': f'structure_files/generations/generation-{num_gen:03d}/final_structures/energy_ranking.txt'
+            }
+
+            if num_gen == 0:
+                previous_energy_path = path_previous_energy_file['initial']
+            else:
+                previous_energy_path = path_previous_energy_file['not_initial']
+
+            actual_energy_path = f'structure_files/generations/generation-{num_gen + 1:03d}/relaxed_structures/energy_ranking.txt'
+
+            previous_energy = open(previous_energy_path, "r")
+            previous_energy.readline()
+
+            actual_energy = open(actual_energy_path, "r")
+            actual_energy.readline()
+
+            file_energy = open(f'structure_files/generations/generation-{num_gen + 1:03d}/final_structures/energy_ranking.txt', 'w')
+            if structure_file == 'poscar':
+                file_energy.write('#       POSCAR-num       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
+            elif structure_file == 'cif':
+                file_energy.write('#       structure-num.cif       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
+
+            for struc_file in name_selected_structures:
+                line_previous_energy = previous_energy.readline()
+                line_actual_energy = actual_energy.readline()
+
+                struc_previous_energy = float(line_previous_energy.split()[2])
+                struc_actual_energy = float(line_actual_energy.split()[2])
+
+                if (struc_previous_energy >= struc_actual_energy) and (abs(struc_previous_energy - struc_actual_energy) >= 2e-4):
+                    shutil.copy(f'structure_files/generations/generation-{num_gen + 1:03d}/relaxed_structures/' + struc_file, 
+                                f'structure_files/generations/generation-{num_gen + 1:03d}/final_structures')
+                    
+                    file_energy.write(line_actual_energy)
+                else:
+                    shutil.copy(f'structure_files/generations/generation-{num_gen + 1:03d}/initial_structures/' + struc_file, 
+                                f'structure_files/generations/generation-{num_gen + 1:03d}/final_structures')
+                    
+                    file_energy.write(line_previous_energy)
+
+            file_energy.close()        
+            previous_energy.close()
+            actual_energy.close()
+
+            if print_terminal_outputs == True:
+                gen_end_actual(num_gen + 1)
+
+            num_gen = num_gen + 1
+
+        if print_terminal_outputs == True:
+            gen_end()
+
+    if (save_all_generations == True) and (num_generations != 0):
+
+        for struc_file in name_selected_structures:
+            shutil.copy(f'structure_files/generations/generation-{num_generations:03d}/initial_structures/' + struc_file, 
+                        'structure_files/generations/final_structures/' + struc_file)
+            
+        phases_and_energies = []
+        final_energy_file = open(f'structure_files/generations/generation-{num_generations:03d}/final_structures/energy_ranking.txt', 'r')
+        final_energy_file.readline()
+        for it in range(len(name_selected_structures)):
+            line_file = final_energy_file.readline()
+            phases_and_energies_element = [line_file.split()[1], float(line_file.split()[2]), line_file.split()[3] + ' ' + line_file.split()[4]]
+            phases_and_energies.append(phases_and_energies_element)
+        final_energy_file.close()
+        
+        sorted_phases_and_energies = sorted(phases_and_energies, key=lambda x: x[1])
+
+        final_energy_file = open('structure_files/generations/final_structures/energy_ranking.txt', 'w')
+        if structure_file == 'poscar':
+            final_energy_file.write('#       POSCAR-num       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
+        elif structure_file == 'cif':
+            final_energy_file.write('#       structure-num.cif       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
+
+        num_phase = 1
+        for phase in sorted_phases_and_energies:
+            final_energy_file.write(f'{num_phase}       {phase[0]}       {phase[1]}       {phase[2]}\n')
+            num_phase = num_phase + 1
+        
+        final_energy_file.close()
+    elif (save_all_generations == False) and (num_generations != 0):
+        if os.path.exists('structure_files/generations/final_structures'):
+            shutil.rmtree('structure_files/generations/final_structures')
+        os.mkdir('structure_files/generations/final_structures')
+
+        for struc_file in name_selected_structures:
+            shutil.copy(f'structure_files/generations/generation-{num_generations:03d}/initial_structures/' + struc_file, 
+                        'final_structures/' + struc_file)
+            
+        phases_and_energies = []
+        final_energy_file = open(f'structure_files/generations/generation-{num_generations:03d}/final_structures/energy_ranking.txt', 'r')
+        final_energy_file.readline()
+        for it in range(len(name_selected_structures)):
+            line_file = final_energy_file.readline()
+            phases_and_energies_element = [line_file.split()[1], float(line_file.split()[2]), line_file.split()[3] + ' ' + line_file.split()[4]]
+            phases_and_energies.append(phases_and_energies_element)
+        final_energy_file.close()
+        
+        sorted_phases_and_energies = sorted(phases_and_energies, key=lambda x: x[1])
+
+        final_energy_file = open('structure_files/generations/energy_ranking.txt', 'w')
+        if structure_file == 'poscar':
+            final_energy_file.write('#       POSCAR-num       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
+        elif structure_file == 'cif':
+            final_energy_file.write('#       structure-num.cif       energy per atom (eV)       Space Group (Hermann-Mauguin)\n')
+
+        num_phase = 1
+        for phase in sorted_phases_and_energies:
+            final_energy_file.write(f'{num_phase}       {phase[0]}       {phase[1]}       {phase[2]}\n')
+            num_phase = num_phase + 1
+        
+        final_energy_file.close()
+        
+        #shutil.rmtree('structure_files')
+
+
+    ### Save the log file
+        
+    log_file = 'output.log'
+
+    if save_log_file == True:
+        log_file_handle = open(log_file, "w")
+
+        class Tee:
+            def __init__(self, *files):
+                self.files = files
+
+            def write(self, text):
+                for file in self.files:
+                    file.write(text)
+                    file.flush()
+
+            def flush(self):
+                for file in self.files:
+                    file.flush()
+
+        sys.stdout = Tee(sys.stdout, log_file_handle)
+
+    end_time = time.time()
+    elapsed_time = end_time - star_time
+
+    if print_terminal_outputs == True:
+        print(f'Elapsed time: {elapsed_time:.3f} seconds')
+
+
+    ### Close the log file
+        
+    if save_log_file == True:
+        log_file_handle.close()
+        sys.stdout = sys.__stdout__
+
+    return
 
 
 def diffraction_study(inputs):
