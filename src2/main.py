@@ -31,7 +31,7 @@ while finish_condition == False:
         option_1(inputs_var)
         correct = input()
         if correct == 'yes':
-            #print('start')
+            csp_study(inputs_var)
             finish_condition = True
         elif correct == 'no':
             finish_condition = True
