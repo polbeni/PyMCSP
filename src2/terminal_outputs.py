@@ -1,5 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - March 2024
+# September 2023 - April 2024
 # Version 1.0
 
 # Functions for output messages in terminal
@@ -64,19 +64,10 @@ def option_1(inputs):
     print(f'num_max_atoms           =  {int(inputs[3])}')
     print(f'num_same_phase          =  {int(inputs[4])}')
     print(f'max_ionic_steps         =  {int(inputs[5])}')
-    print(f'comp_pressure           =  {inputs[6]}')
-    print(f'pressure                =  {float(inputs[7])}')
-    print(f'num_volumes             =  {int(inputs[8])}')
-    print(f'minimum_volume          =  {float(inputs[9])}')
-    print(f'maximum_volume          =  {float(inputs[10])}')
-    print(f'print_terminal_outputs  =  {inputs[11]}')
-    print(f'save_log_file           =  {inputs[12]}')
-    print(f'save_all_generations    =  {inputs[13]}')
-    print(f'structure_file          =  {inputs[14]}')
-    print(f'prec_group_det          =  {float(inputs[15])}')
-    print(f'num_generations         =  {int(inputs[16])}')
-    print(f'surviving_phases        =  {float(inputs[17])}')
-    print(f'max_disp                =  {float(inputs[18])}')
+    print(f'print_terminal_outputs  =  {inputs[10]}')
+    print(f'save_log_file           =  {inputs[11]}')
+    print(f'structure_file          =  {inputs[12]}')
+    print(f'prec_group_det          =  {float(inputs[13])}')
     print('')
     print('Are they correct? (write yes or no)')
     print('o---------------------------------------------------o')
@@ -97,16 +88,15 @@ def option_2(inputs):
     print('')
     print('The inputs are:')
     print(f'max_ionic_steps         =  {int(inputs[5])}')
-    print(f'comp_pressure           =  {inputs[6]}')
-    print(f'pressure                =  {float(inputs[7])}')
-    print(f'num_volumes             =  {int(inputs[8])}')
-    print(f'minimum_volume          =  {float(inputs[9])}')
-    print(f'maximum_volume          =  {float(inputs[10])}')
-    print(f'print_terminal_outputs  =  {inputs[11]}')
-    print(f'save_log_file           =  {inputs[12]}')
-    print(f'save_all_generations    =  {inputs[13]}')
-    print(f'structure_file          =  {inputs[14]}')
-    print(f'prec_group_det          =  {float(inputs[15])}')
+    print(f'pressure                =  {float(inputs[6])}')
+    print(f'num_volumes             =  {int(inputs[7])}')
+    print(f'minimum_volume          =  {float(inputs[8])}')
+    print(f'maximum_volume          =  {float(inputs[9])}')
+    print(f'print_terminal_outputs  =  {inputs[10]}')
+    print(f'save_log_file           =  {inputs[11]}')
+    print(f'structure_file          =  {inputs[12]}')
+    print(f'prec_group_det          =  {float(inputs[13])}')
+    print(f'struc_path              =  {inputs[17]}')
     print('')
     print('Are they correct? (write yes or no)')
     print('o---------------------------------------------------o')
@@ -126,14 +116,14 @@ def option_3(inputs):
     print('')
     print('The inputs are:')
     print(f'max_ionic_steps         =  {int(inputs[5])}')
-    print(f'print_terminal_outputs  =  {inputs[11]}')
-    print(f'save_log_file           =  {inputs[12]}')
-    print(f'save_all_generations    =  {inputs[13]}')
-    print(f'structure_file          =  {inputs[14]}')
-    print(f'prec_group_det          =  {float(inputs[15])}')
-    print(f'num_generations         =  {int(inputs[16])}')
-    print(f'surviving_phases        =  {float(inputs[17])}')
-    print(f'max_disp                =  {float(inputs[18])}')
+    print(f'print_terminal_outputs  =  {inputs[10]}')
+    print(f'save_log_file           =  {inputs[11]}')
+    print(f'structure_file          =  {inputs[12]}')
+    print(f'prec_group_det          =  {float(inputs[13])}')
+    print(f'num_generations         =  {int(inputs[14])}')
+    print(f'surviving_phases        =  {float(inputs[15])}')
+    print(f'max_disp                =  {float(inputs[16])}')
+    print(f'struc_path              =  {inputs[17]}')
     print('')
     print('Are they correct? (write yes or no)')
     print('o---------------------------------------------------o')
@@ -263,7 +253,7 @@ def final_message():
     return
 
 
-def simulation_information(atoms, stoichiometry, num_max, gen):
+def simulation_information(atoms, stoichiometry, num_max):
     """
     Provides information about the simulation
 
@@ -271,7 +261,6 @@ def simulation_information(atoms, stoichiometry, num_max, gen):
         atoms: array with the atoms of the material
         stoichiometry: nmber of atoms for each element
         num_max: maximum number of atoms in the unit cell
-        gen: number of generations
     """
 
     material = ''
@@ -283,7 +272,22 @@ def simulation_information(atoms, stoichiometry, num_max, gen):
     print('The simulation has started!')
     print(f'Looking for phases of the material {material}.')
     print(f'The maximum number of atoms per unit cell is {num_max}.')
-    print(f'The number of generations is {gen}.')
+    print('')
+
+    return
+
+
+def simulation_information_pressure(pressure):
+    """
+    Provides information about the pressure computations
+
+    Inptus:
+        pressure: pressure in Pa for pressure computations
+    """
+
+    print('')
+    print('The simulation has started!')
+    print(f'The selected pressure is {pressure} Pa.')
     print('')
 
     return
@@ -324,6 +328,18 @@ def relax_ini():
 
     return
 
+
+def relax_struc(struc):
+    """
+    Relaxing the structure number #
+    """
+
+    print('')
+    print(f'Relaxing the structure: {struc}')
+    print('')
+
+    return
+
     
 def relax_end():
     """
@@ -337,25 +353,37 @@ def relax_end():
     return
 
 
-def pressure_ini():
+def press_ini():
     """
-    Starting the pressure calculations
+    Starting the pressure computation
     """
 
     print('')
-    print('Determining volumes that minimize the enthalpy for pressure study.')
+    print('Starting the pressure computation.')
     print('')
 
     return
 
-    
-def pressure_end():
+
+def press_struc(struc):
     """
-    End the pressure calculations
+    Computing pressure of the structure number #
     """
 
     print('')
-    print('Energies determined for the structures with pressure!')
+    print(f'Computing pressure of the structure: {struc}')
+    print('')
+
+    return
+
+
+def press_end():
+    """
+    End the pressure computation
+    """
+
+    print('')
+    print('Structures with pressure determined!')
     print('')
 
     return

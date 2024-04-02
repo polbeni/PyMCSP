@@ -1,5 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - March 2024
+# September 2023 - April 2024
 # Version 1.0
 
 # Inputs file for diffraction study
@@ -10,7 +10,7 @@
 # IMPORTANT2: XRDCalculator and NDCalculator have wavelength variable, for now using the default values
 # read https://pymatgen.org/pymatgen.analysis.diffraction.html
 
-path_structures         =  structure_files/initial_structures/relaxed_structures/   # path to the theoretical phases and energy_ranking.txt file
+path_structures         =  structure_files/relaxed_structures/   # path to the theoretical phases and energy_ranking.txt file
 structure_file          =  poscar              # type of structure file for the theoretical phases (poscar or cif), and the substrate file (if applies)
 name_exp_diff           =  diff_exp.csv        # path to the experimental diffractogram, it has to be a csv file with two columns, 2theta (first) and intensity (second)
 clean_substrate         =  False               # remove the peaks related with the substrate (True) or not (False)
