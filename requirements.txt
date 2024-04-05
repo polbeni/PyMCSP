@@ -1,4 +1,5 @@
 numpy
+scipy
 pymatgen
 pyxtal
 m3gnet>=0.2.4
