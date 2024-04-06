@@ -33,7 +33,7 @@ We can use the determined phases with PyMCSP to predict the phase group of a giv
 
 $Loss=a\left|n_{exp} - n_{theo} \right|^{2} + \int_{2\theta_{min}}^{2\theta_{max}}\left| I_{exp} -I_{theo} \right|^{2}d2\theta,$
 
-here, the first term penalizes big difference of peak numbers, while the second term penalizes peaks in different $2\theta$ positions. After the execution of the program, the results are shown in a file. 
+here, the first term penalizes big difference of peak numbers, while the second term penalizes peaks in different $2\theta$ positions. After the execution of the program, the results are shown in a file. The program also slightly varies the lattice parameters, and takes the volume that minimize the loss factor. Doing this we can match the experimental lattice parameters.
 
 ## Requirements
 
