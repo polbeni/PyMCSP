@@ -1,5 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - April 2024
+# September 2023 - May 2024
 # Version 1.0
 
 # Functions file
@@ -233,6 +233,8 @@ def pressure_structure(relax_object, relax_struc_path, pressure_struc_path, pres
 
     relaxed_structure = Structure.from_file(relax_struc_path)
 
+    num_atoms = relaxed_structure.num_sites
+
     volume = np.zeros(number_volumes)
     alpha_array = np.zeros(number_volumes)
     enthalpy = np.zeros(number_volumes)
@@ -276,12 +278,13 @@ def pressure_structure(relax_object, relax_struc_path, pressure_struc_path, pres
 
     if alpha_min_enthalpy != new_alpha_range[-1]:
         final_energy = float(pressurized_energy['trajectory'].energies[0]/len(relaxed_structure))
+        final_enthalpy = final_energy + J_to_eV((pressure*alpha_min_enthalpy*relaxed_structure.volume*(1e-30))/num_atoms)
     else:
         final_energy = 0
 
     counter = counter + 1
 
-    return final_energy, counter, alpha_min_enthalpy
+    return final_enthalpy, final_energy, counter, alpha_min_enthalpy
 
 
 def write_in_file(file_object, structure_path, struc_num, energy, prec_spglib, type_output, counter):
@@ -315,7 +318,7 @@ def write_in_file(file_object, structure_path, struc_num, energy, prec_spglib, t
     return
 
 
-def write_in_file_pressure(file_object, structure_path, struc_num, energy, alpha, prec_spglib, type_output, counter):
+def write_in_file_pressure(file_object, structure_path, struc_num, enthalpy, energy, alpha, prec_spglib, type_output, counter):
     """
     Write the number, the file structure number, the energy per atom (in eV),
     and the phase group for a given structure in the energy file
@@ -324,6 +327,7 @@ def write_in_file_pressure(file_object, structure_path, struc_num, energy, alpha
         file_object: the object of the file of energies
         structure_path: path to the structure of interest
         struc_num: the number of the structure
+        enthalpy: determined enthalpy per atom
         energy: energy per atom (in eV) of the structure
         alpha: proportion of the volume of the pressurized phase
         prec_spglib: precision for the phase determination with spglib
@@ -340,9 +344,9 @@ def write_in_file_pressure(file_object, structure_path, struc_num, energy, alpha
     symmetry = structure_symmetry.get_symmetry_dataset()
 
     if type_output == 'poscar':
-        file_object.write(f'{int(counter)}       POSCAR-{struc_num:06d}       {energy}       {alpha}       {symmetry["international"]} ({symmetry["number"]})\n')
+        file_object.write(f'{int(counter)}       POSCAR-{struc_num:06d}       {enthalpy}       {energy}       {alpha}       {symmetry["international"]} ({symmetry["number"]})\n')
     elif type_output == 'cif':
-        file_object.write(f'{int(counter)}       structure-{struc_num:06d}.cif       {energy}       {alpha}       {symmetry["international"]} ({symmetry["number"]})\n')
+        file_object.write(f'{int(counter)}       structure-{struc_num:06d}.cif       {enthalpy}       {energy}       {alpha}       {symmetry["international"]} ({symmetry["number"]})\n')
 
     return
 
@@ -934,7 +938,7 @@ def pressure_computations(inputs):
         shutil.rmtree('structure_files/pressure_structures/')
     os.mkdir('structure_files/pressure_structures/')
 
-    pressure_energy_array = np.zeros((num_structures - 1,3))
+    pressure_energy_array = np.zeros((num_structures - 1, 4))
     count = 0
 
     if print_terminal_outputs == True:
@@ -957,30 +961,32 @@ def pressure_computations(inputs):
                 struc_name = 'structure-' + "{:06d}".format(num_struc + 1) + '.cif'
             press_struc(struc_name)
 
-        pressure_energy, count, alpha = pressure_structure(relaxer, relaxed_path, pressure_path, pressure, num_volumes, minimum_volume,
+        pressure_enthalpy, pressure_energy, count, alpha = pressure_structure(relaxer, relaxed_path, pressure_path, pressure, num_volumes, minimum_volume,
                                                            maximum_volume, print_terminal_outputs, structure_file, count)
             
         pressure_energy_array[count - 1, 0] = int(count)
         pressure_energy_array[count - 1, 1] = pressure_energy
         pressure_energy_array[count - 1, 2] = alpha
+        pressure_energy_array[count - 1, 3] = pressure_enthalpy
 
     if print_terminal_outputs == True:
         press_end()
 
-    sorted_indices_pressure = np.argsort(pressure_energy_array[:,1])
+    sorted_indices_pressure = np.argsort(pressure_energy_array[:,3])
     phase_energy_sorted_pressure = pressure_energy_array[sorted_indices_pressure]
 
     file_energy = open('structure_files/pressure_structures/energy_ranking_pressure.txt', 'w')
     if structure_file == 'poscar':
-        file_energy.write('#       POSCAR-num       energy per atom (eV)       alpha       Space Group (Hermann-Mauguin)\n')
+        file_energy.write('#       POSCAR-num       enthalpy per atom (eV)       energy per atom (eV)       alpha       Space Group (Hermann-Mauguin)\n')
     elif structure_file == 'cif':
-        file_energy.write('#       structure-num.cif       energy per atom (eV)       alpha       Space Group (Hermann-Mauguin)\n')
+        file_energy.write('#       structure-num.cif       enthalpy per atom (eV)       energy per atom (eV)       alpha       Space Group (Hermann-Mauguin)\n')
 
     count = 1
     for num_struc in range(num_structures - 1):
         struc_number = int(phase_energy_sorted_pressure[num_struc,0])
         struc_energy = phase_energy_sorted_pressure[num_struc,1]
         struc_alpha = phase_energy_sorted_pressure[num_struc,2]
+        struc_enthalpy = phase_energy_sorted_pressure[num_struc,3]
         if structure_file == 'poscar':
             phase_file = 'structure_files/pressure_structures/POSCAR-' + "{:06d}".format(struc_number)
         elif structure_file == 'cif':
@@ -988,9 +994,10 @@ def pressure_computations(inputs):
 
         if struc_energy == 0:
             struc_energy = 'Error'
+            struc_enthalpy = 'Error'
             struc_alpha = 'Not minimized'
 
-        write_in_file_pressure(file_energy, phase_file, struc_number, struc_energy, struc_alpha,
+        write_in_file_pressure(file_energy, phase_file, struc_number, struc_enthalpy, struc_energy, struc_alpha,
                         prec_group_det, structure_file, count)
 
         count = count + 1

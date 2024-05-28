@@ -1,5 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - April 2024
+# September 2023 - May 2024
 # Version 1.0
 
 # Functions for output messages in terminal
@@ -87,7 +87,6 @@ def option_2(inputs):
     print('You have selected: Pressure computations for a given structures')
     print('')
     print('The inputs are:')
-    print(f'max_ionic_steps         =  {int(inputs[5])}')
     print(f'pressure                =  {float(inputs[6])}')
     print(f'num_volumes             =  {int(inputs[7])}')
     print(f'minimum_volume          =  {float(inputs[8])}')
