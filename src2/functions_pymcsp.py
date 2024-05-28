@@ -281,6 +281,7 @@ def pressure_structure(relax_object, relax_struc_path, pressure_struc_path, pres
         final_enthalpy = final_energy + J_to_eV((pressure*alpha_min_enthalpy*relaxed_structure.volume*(1e-30))/num_atoms)
     else:
         final_energy = 0
+        final_enthalpy = 0
 
     counter = counter + 1
 
