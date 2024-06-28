@@ -3,3 +3,5 @@ scipy
 pymatgen
 pyxtal
 m3gnet>=0.2.4
+tensorflow==2.15.0.post1
+keras==2.15.0
