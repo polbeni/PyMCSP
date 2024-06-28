@@ -43,6 +43,8 @@ The code has been tested in GNU/Linux operating system (Ubuntu 22.04.3 LTS) and 
 - pymatgen
 - pyxtal
 - m3gnet 0.2.4
+- tensorflow 2.15.0.post1
+- keras 2.15.0
 
 The different modules can be downloaded manually, or instead execute the following command to install them automatically:
 ```bash
