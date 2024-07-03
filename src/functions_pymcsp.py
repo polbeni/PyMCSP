@@ -733,7 +733,7 @@ def csp_study(inputs):
         inputs: array with all the input variables from inputs_csp file
     """
 
-    star_time = time.time()
+    start_time = time.time()
 
     dimension = int(inputs[0])
     atoms = inputs[1]
@@ -885,7 +885,7 @@ def csp_study(inputs):
     file_energy.close()
 
     end_time = time.time()
-    elapsed_time = end_time - star_time
+    elapsed_time = end_time - start_time
 
     if print_terminal_outputs == True:
         print(f'Elapsed time: {elapsed_time:.3f} seconds')
@@ -908,7 +908,7 @@ def pressure_computations(inputs):
         inputs: array with all the input variables from inputs_csp file
     """
 
-    star_time = time.time()
+    start_time = time.time()
 
     pressure = float(inputs[6])
     num_volumes = int(inputs[7])
@@ -1032,7 +1032,7 @@ def pressure_computations(inputs):
     file_energy.close()
 
     end_time = time.time()
-    elapsed_time = end_time - star_time
+    elapsed_time = end_time - start_time
 
     if print_terminal_outputs == True:
         print(f'Elapsed time: {elapsed_time:.3f} seconds')
@@ -1055,7 +1055,7 @@ def generations_loop(inputs):
         inputs: array with all the input variables from inputs_csp file
     """
 
-    star_time = time.time()
+    start_time = time.time()
 
     max_ionic_steps = int(inputs[5])
     print_terminal_outputs = inputs[10]
@@ -1289,7 +1289,7 @@ def generations_loop(inputs):
     final_energy_file.close()
 
     end_time = time.time()
-    elapsed_time = end_time - star_time
+    elapsed_time = end_time - start_time
 
     if print_terminal_outputs == True:
         print(f'Elapsed time: {elapsed_time:.3f} seconds')

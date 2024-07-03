@@ -1,5 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - April 2024
+# September 2023 - July 2024
 # Version 1.0
 
 # Inputs file for crystal structure prediction
@@ -13,8 +13,8 @@ atoms                   =  ['Ga','As']         # name of the atoms in the materi
 stoichiometry           =  [1,1]               # stoichiometry of the materials, has to have the same order as atoms
 num_max_atoms           =  2                   # maximum number of atoms that we want in the unit cell
 num_same_phase          =  1                   # number of generated structures for the same space group and stoichiometry
-max_ionic_steps         =  250                 # maximum number of ionic steps for the relaxation of the structures
-pressure                =  1e4                 # desired pressure in Pa (only considered for pressure computations)
+max_ionic_steps         =  10                 # maximum number of ionic steps for the relaxation of the structures
+pressure                =  1e8                 # desired pressure in Pa (only considered for pressure computations)
 num_volumes             =  30                  # number of different volumes to determine enthalpy curves (only considered for pressure computations)
 minimum_volume          =  0.8                 # proportion with respect the original volume (V0) of the minimum desired volume (Vmin) for pressure calculations (Vmin=minimum_volume*V0) (only considered for pressure computations)
 maximum_volume          =  1.2                 # proportion with respect the original volume (V0) of the maximum desired volume (Vmax) for pressure calculations (Vmax=minimum_volume*V0) (only considered for pressure computations)
@@ -22,7 +22,7 @@ print_terminal_outputs  =  True                # activate (True) or deactivate (
 save_log_file           =  True                # save a log file of the execution (True) or not (False)
 structure_file          =  poscar              # type of structure file for the generated phases (poscar or cif)
 prec_group_det          =  1e-5                # precision to determine phase group with spglib
-num_generations         =  2                   # number of generations (only considered for generations loop)
+num_generations         =  3                   # number of generations (only considered for generations loop)
 surviving_phases        =  0.2                 # fraction of phases that will be considered (only considered for generations loop)
 max_disp                =  0.1                 # length of maximum displacement for the distortion of the structure (in Angstroms) (only considered for generations loop)
 struc_path              =  structure_files/relaxed_structures     # path to the found structures, has to contain the energy_ranking.txt file (only considered for pressure or generations loop)
