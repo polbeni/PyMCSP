@@ -4,8 +4,6 @@ One of the most important and critical problems in materials science is to know 
 
 In this context, we present **PyMCSP** a **P**ython and **M**achine Learning methods implementation for **C**rystal **S**tructure **P**rediction. This is intended to be a method to find novel phases for well known or new materials at reasonable frame times, few minutes to few hours in a standard user's computer.
 
-The code in `src` is completely functional (old version) and it is possible to perform crystal structure prediction and diffraction studies. However, we are migrating to a more compact code and user friendly interface. The new code can be found in `src2`, although the diffraction part is still not available and it is not explained how to work with in this repository.
-
 ## How it works
 
 From a given chemical compounds and stoichiometry, the program constructs random crystal structures with the phase groups that are compatible with the given stoichiometry. To do this [PyXtal](https://github.com/qzhu2017/PyXtal) [[2]](#2) Python library is used.
@@ -20,12 +18,6 @@ $H(p,V)=E(V)+pV.$
 
 After this we rank the pressurized structures as function of the enthalpy (instead of the internal energy as is the case of computations without pressure).
 
-In order to perform pressure calculations you should use:
-
-```
-comp_pressure = True
-```
-Then, assign the desired values to the flags `pressure`, `num_volumes`, `minimum_volume` and `maximum_volume`.
 
 Since it is possible to re-train M3GNet with DFT results, we can use DFT materials simulation results to re-train M3GNet in order to be able to look for novel phases of similar materials, but this is not yet implemented.
 
@@ -61,21 +53,25 @@ Make sure to have installed all the necessary packages.
 
 ## How to use it
 
-Modify the values in the `src/inputs` file and execute the main script `src/PyMCSP.py` with:
+For any calculation execute the main script `src/PyMCSP.py` with:
 
 ```bash
 $ cd src
 $ python3 PyMCSP.py
 ```
 
-The calculations will start and a directory named `structures_files` will storage the found structures as well as other output files. If you want to perform calculations with different inputs (for example, with different materials), you should save the `structures_files` directory in another place, since every time PyMCSP is executed it overwrites this directory.
+#### Crystal Structure Prediction
 
-To do diffraction studies, modify the values in the `src/inputs_diffraction` file, be sure you have a CSV file (with the proper format) with the diffraction results in the directory, and execute the script `src/diffraction.py` with:
+To perform normal crystal stucture prediction select the option `1` and verify that all the inputs are correct. The calculations will start and a directory named `structures_files` will storage the generated and relaxed structures. If you want to perform calculations with different inputs (for example, with different materials), you should save the `structures_files` directory in another place, since every time PyMCSP is executed it overwrites this directory.
 
-```bash
-$ cd src
-$ python3 diffraction.py
-```
+Pressure computations are performed selecting the option `2`. The results will be saved in `structures_files/pressure_structures`. If you are interested in doing pressure calculations at different pressures, please save the `structures_files/pressure_structures` in a differnt directory, otherwise the former results will be overwritten.
+
+To apply the generations loop implementation you should select the option `3`. The resulting structures will be stored in `structures_files/generations`, the results of the generation number i will be saved in `structures_files/generations/generation-i`, while the final structures will be in `structures_files/generations/final_structures`.
+
+#### Diffraction Study
+
+To do diffraction studies select the option `4`. 
+
 
 It is also important that you previously generate structures with PyMCSP.
 
