@@ -79,7 +79,7 @@ def read_variables_diffraction(path_file):
 
     inputs = open(path_file, "r")
 
-    variables = [None]*19
+    variables = [None]*21
 
     for it in range(12):
         inputs.readline()
