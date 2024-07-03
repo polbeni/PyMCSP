@@ -8,6 +8,7 @@ import os
 import sys
 import shutil
 import time
+import subprocess
 
 from functions_pymcsp import *
 from terminal_outputs import *
@@ -66,7 +67,7 @@ while finish_condition == False:
         option_4(inputs_var)
         correct = input()
         if correct == 'yes':
-            diffraction_study(inputs_var)
+            subprocess.run(['python3', 'diffraction_module.py'])
             finish_condition = True
         elif correct == 'no':
             finish_condition = True
