@@ -1316,7 +1316,7 @@ def change_exp_tuned_parameters(prominance, width, inputs_path):
 
     string_array = []
     inputs = open(inputs_path, 'r')
-    for num_lines in range(31):
+    for num_lines in range(33):
         actual_line = inputs.readline()
         string_array.append(actual_line)
     inputs.close()
@@ -1326,7 +1326,7 @@ def change_exp_tuned_parameters(prominance, width, inputs_path):
         inputs.write(string_array[num_lines])
     inputs.write(f'prominance_exp          =  {prominance}\n')
     inputs.write(f'width_exp               =  {width}\n')
-    for num_lines in range(3):
+    for num_lines in range(5):
         inputs.write(string_array[num_lines + 28])
     inputs.close()
 
