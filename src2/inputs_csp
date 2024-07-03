@@ -26,3 +26,5 @@ num_generations         =  2                   # number of generations (only con
 surviving_phases        =  0.2                 # fraction of phases that will be considered (only considered for generations loop)
 max_disp                =  0.1                 # length of maximum displacement for the distortion of the structure (in Angstroms) (only considered for generations loop)
 struc_path              =  structure_files/relaxed_structures     # path to the found structures, has to contain the energy_ranking.txt file (only considered for pressure or generations loop)
+retrain                 =  False               # specify if wants to use a retrained M3GNet model (True) or not (False)
+retrain_path            =  path-retreined      # path to the retreined model (if applies)
