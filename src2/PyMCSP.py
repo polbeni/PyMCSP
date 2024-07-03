@@ -1,5 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - April 2024
+# September 2023 - July 2024
 # Version 1.0
 
 # Main script
@@ -14,8 +14,7 @@ from terminal_outputs import *
 
 import warnings
 
-for category in (UserWarning, DeprecationWarning):
-    warnings.filterwarnings("ignore", category=category, module="tensorflow")
+warnings.simplefilter("ignore") # To suppress warnings for clearer output
 
 initial_message()
 

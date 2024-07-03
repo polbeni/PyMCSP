@@ -1,5 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - May 2024
+# September 2023 - July 2024
 # Version 1.0
 
 # Functions for output messages in terminal
@@ -68,6 +68,8 @@ def option_1(inputs):
     print(f'save_log_file           =  {inputs[11]}')
     print(f'structure_file          =  {inputs[12]}')
     print(f'prec_group_det          =  {float(inputs[13])}')
+    print(f'retrain                 =  {inputs[18]}')
+    print(f'retrain_path            =  {inputs[19]}')
     print('')
     print('Are they correct? (write yes or no)')
     print('o---------------------------------------------------o')
@@ -96,6 +98,8 @@ def option_2(inputs):
     print(f'structure_file          =  {inputs[12]}')
     print(f'prec_group_det          =  {float(inputs[13])}')
     print(f'struc_path              =  {inputs[17]}')
+    print(f'retrain                 =  {inputs[18]}')
+    print(f'retrain_path            =  {inputs[19]}')
     print('')
     print('Are they correct? (write yes or no)')
     print('o---------------------------------------------------o')
@@ -123,6 +127,8 @@ def option_3(inputs):
     print(f'surviving_phases        =  {float(inputs[15])}')
     print(f'max_disp                =  {float(inputs[16])}')
     print(f'struc_path              =  {inputs[17]}')
+    print(f'retrain                 =  {inputs[18]}')
+    print(f'retrain_path            =  {inputs[19]}')
     print('')
     print('Are they correct? (write yes or no)')
     print('o---------------------------------------------------o')

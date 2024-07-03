@@ -1,5 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - May 2024
+# September 2023 - July 2024
 # Version 1.0
 
 # Functions file
@@ -23,19 +23,20 @@ from pymatgen.core import Structure
 from pymatgen.io.vasp import Poscar
 from pymatgen.io.cif import CifParser
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+from pymatgen.io.ase import AseAtomsAdaptor
 from pymatgen.analysis.diffraction.xrd import XRDCalculator
 from pymatgen.analysis.diffraction.neutron import NDCalculator
 
 from pyxtal import pyxtal
 
-from m3gnet.models import Relaxer
+import matgl
+from matgl.ext.ase import Relaxer, PESCalculator
 
 from terminal_outputs import *
 
 import warnings
 
-for category in (UserWarning, DeprecationWarning):
-    warnings.filterwarnings("ignore", category=category, module="tensorflow")
+warnings.simplefilter("ignore") # To suppress warnings for clearer output
 
 
 def read_variables_csp(path_file):
@@ -48,7 +49,7 @@ def read_variables_csp(path_file):
 
     inputs = open(path_file, "r")
 
-    variables = [None]*18
+    variables = [None]*20
 
     for it in range(10):
         inputs.readline()
@@ -213,13 +214,14 @@ def A3_to_m3(A3_volume):
     return A3_volume*1e-30
 
 
-def pressure_structure(relax_object, relax_struc_path, pressure_struc_path, pressure, number_volumes, min_alpha, max_alpha, text_output, type_output, counter):
+def pressure_structure(calc_object, ase_adaptor_object, relax_struc_path, pressure_struc_path, pressure, number_volumes, min_alpha, max_alpha, text_output, type_output, counter):
     """
     Find the structure that minimizes enthalpy for a given pressure, and returnes the energy and alpha (where alpha is the proportional
     volume that that verifies the minimization)
 
     Inputs:
-        relax_object: the relaxer object by m3gnet module
+        calc_object: the single point energy calculation object by m3gnet
+        ase_adaptor_object: ase adaptator object necessary for single point energy calculation
         relax_struc_path: the path of the relaxed structure
         pressure_struc_path: the path of the pressurized structure
         pressure: value of the pressure in Pa
@@ -248,12 +250,10 @@ def pressure_structure(relax_object, relax_struc_path, pressure_struc_path, pres
         volume[vol] = distorted.volume * alpha
         alpha_array[vol] = alpha
 
-        if text_output == True:
-            pressure_results = relax_object.relax(distorted, steps=1, verbose=True)
-        else:
-            pressure_results = relax_object.relax(distorted, steps=1, verbose=False)
+        atoms = ase_adaptor_object.get_atoms(distorted)
+        atoms.set_calculator(calc_object)
 
-        energy_volume = float(pressure_results['trajectory'].energies[0])
+        energy_volume = float(atoms.get_potential_energy())
 
         enthalpy[vol] = J_to_eV(eV_to_J(energy_volume) + pressure*A3_to_m3(distorted.volume*alpha))
 
@@ -271,13 +271,11 @@ def pressure_structure(relax_object, relax_struc_path, pressure_struc_path, pres
 
     pressurized_structure.to(filename=pressure_struc_path, fmt=type_output)
 
-    if text_output == True:
-        pressurized_energy = relax_object.relax(pressurized_structure, steps=1, verbose=True)
-    else:
-        pressurized_energy = relax_object.relax(pressurized_structure, steps=1, verbose=False)
+    atoms = ase_adaptor_object.get_atoms(pressurized_structure)
+    atoms.set_calculator(calc_object)
 
     if alpha_min_enthalpy != new_alpha_range[-1]:
-        final_energy = float(pressurized_energy['trajectory'].energies[0]/len(relaxed_structure))
+        final_energy = float(atoms.get_potential_energy())
         final_enthalpy = final_energy + J_to_eV((pressure*alpha_min_enthalpy*relaxed_structure.volume*(1e-30))/num_atoms)
     else:
         final_energy = 0
@@ -692,14 +690,42 @@ def plot_exp_tuned(prominance, width, exp_path):
     return
 
 
-def relaxer_function():
+def relaxer_function(retrained, retrained_path):
     """
     Calls M3GNet relaxer function
-    
+
+    Inputs:
+        retreined: boolean, True if the user provides a retrained model path
+        retreined_path: path to the retreined model for M3GNet
     """
-    relaxer = Relaxer()
+
+    if retrained == False:
+        pot = matgl.load_model("M3GNet-MP-2021.2.8-PES")
+    else:
+        pot = matgl.load_model(retrained_path)
+
+    relaxer = Relaxer(potential=pot)
 
     return relaxer
+
+
+def energy_function(retrained, retrained_path):
+    """
+    Calls M3GNet single point calculation function
+
+    Inputs:
+        retreined: boolean, True if the user provides a retrained model path
+        retreined_path: path to the retreined model for M3GNet
+    """
+
+    if retrained == False:
+        pot = matgl.load_model("M3GNet-MP-2021.2.8-PES")
+    else:
+        pot = matgl.load_model(retrained_path)
+
+    calc = PESCalculator(potential=pot)
+
+    return calc
 
 
 def csp_study(inputs):
@@ -722,6 +748,8 @@ def csp_study(inputs):
     save_log_file = inputs[11]
     structure_file = inputs[12]
     prec_group_det = float(inputs[13])
+    retrain = inputs[18]
+    retrain_path = inputs[19]
 
 
     ### Save the log file
@@ -789,7 +817,7 @@ def csp_study(inputs):
 
     
     #### Relax the first structures
-    relaxer = relaxer_function()
+    relaxer = relaxer_function(retrained=retrain, retrained_path=retrain_path)
 
     dir_path = 'structure_files/generated_structures/'
 
@@ -803,8 +831,6 @@ def csp_study(inputs):
         print(f'Number of structures to relax: {num_structures}')
 
     os.mkdir('structure_files/relaxed_structures/')
-
-    relaxer_function()
 
     phase_energy_array = np.zeros((num_structures,2))
     count = 0
@@ -896,6 +922,8 @@ def pressure_computations(inputs):
     structure_file = inputs[12]
     prec_group_det = float(inputs[13])
     struc_path = inputs[17]
+    retrain = inputs[18]
+    retrain_path = inputs[19]
 
     ### Save the log file
         
@@ -945,7 +973,8 @@ def pressure_computations(inputs):
     if print_terminal_outputs == True:
         press_ini()
 
-    relaxer = relaxer_function()
+    calc = energy_function(retrained=retrain, retrained_path=retrain_path)
+    ase_adaptor = AseAtomsAdaptor()
 
     for num_struc in range(num_structures - 1):
         if structure_file == 'poscar':
@@ -962,7 +991,7 @@ def pressure_computations(inputs):
                 struc_name = 'structure-' + "{:06d}".format(num_struc + 1) + '.cif'
             press_struc(struc_name)
 
-        pressure_enthalpy, pressure_energy, count, alpha = pressure_structure(relaxer, relaxed_path, pressure_path, pressure, num_volumes, minimum_volume,
+        pressure_enthalpy, pressure_energy, count, alpha = pressure_structure(calc, ase_adaptor, relaxed_path, pressure_path, pressure, num_volumes, minimum_volume,
                                                            maximum_volume, print_terminal_outputs, structure_file, count)
             
         pressure_energy_array[count - 1, 0] = int(count)
@@ -1040,6 +1069,8 @@ def generations_loop(inputs):
     surviving_phases = float(inputs[15])
     max_disp = float(inputs[16])
     struc_path = inputs[17]
+    retrain = inputs[18]
+    retrain_path = inputs[19]
 
     ### Save the log file
         
@@ -1083,7 +1114,7 @@ def generations_loop(inputs):
         shutil.rmtree('structure_files/generations/')
     os.mkdir('structure_files/generations/')
 
-    relaxer = relaxer_function()
+    relaxer = relaxer_function(retrained=retrain, retrained_path=retrain_path)
 
     if print_terminal_outputs == True:
         gen_ini()
