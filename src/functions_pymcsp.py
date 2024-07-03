@@ -1,5 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - March 2024
+# September 2023 - July 2024
 # Version 0.3
 
 # Functions file
@@ -129,13 +129,14 @@ def A3_to_m3(A3_volume):
     return A3_volume*1e-30
 
 
-def pressure_structure(relax_object, relax_struc_path, pressure_struc_path, pressure, number_volumes, min_alpha, max_alpha, text_output, type_output, counter):
+def pressure_structure(calc_object, ase_adaptor_object, relax_struc_path, pressure_struc_path, pressure, number_volumes, min_alpha, max_alpha, text_output, type_output, counter):
     """
     Find the structure that minimizes enthalpy for a given pressure, and returnes the energy and alpha (where alpha is the proportional
     volume that that verifies the minimization)
 
     Inputs:
-        relax_object: the relaxer object by m3gnet module
+        calc_object: the single point energy calculation object by m3gnet
+        ase_adaptor_object: ase adaptator object necessary for single point energy calculation
         relax_struc_path: the path of the relaxed structure
         pressure_struc_path: the path of the pressurized structure
         pressure: value of the pressure in Pa
@@ -162,12 +163,10 @@ def pressure_structure(relax_object, relax_struc_path, pressure_struc_path, pres
         volume[vol] = distorted.volume * alpha
         alpha_array[vol] = alpha
 
-        if text_output == True:
-            pressure_results = relax_object.relax(distorted, steps=1, verbose=True)
-        else:
-            pressure_results = relax_object.relax(distorted, steps=1, verbose=False)
+        atoms = ase_adaptor_object.get_atoms(distorted)
+        atoms.set_calculator(calc_object)
 
-        energy_volume = float(pressure_results['trajectory'].energies[0])
+        energy_volume = float(atoms.get_potential_energy())
 
         enthalpy[vol] = J_to_eV(eV_to_J(energy_volume) + pressure*A3_to_m3(distorted.volume*alpha))
 
@@ -185,13 +184,11 @@ def pressure_structure(relax_object, relax_struc_path, pressure_struc_path, pres
 
     pressurized_structure.to(filename=pressure_struc_path, fmt=type_output)
 
-    if text_output == True:
-        pressurized_energy = relax_object.relax(pressurized_structure, steps=1, verbose=True)
-    else:
-        pressurized_energy = relax_object.relax(pressurized_structure, steps=1, verbose=False)
+    atoms = ase_adaptor_object.get_atoms(pressurized_structure)
+    atoms.set_calculator(calc_object)
 
     if alpha_min_enthalpy != new_alpha_range[-1]:
-        final_energy = float(pressurized_energy['trajectory'].energies[0]/len(relaxed_structure))
+        final_energy = float(atoms.get_potential_energy())
     else:
         final_energy = 0
 

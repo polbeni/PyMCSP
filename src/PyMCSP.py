@@ -1,5 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - March 2024
+# September 2023 - July 2024
 # Version 0.3
 
 # Main script to perfrom crystal structure prediction with PyMCSP method
@@ -19,19 +19,21 @@ from terminal_outputs import *
 
 from pymatgen.core import Structure
 from pymatgen.io.vasp import Poscar
+from pymatgen.io.ase import AseAtomsAdaptor
 
 from pyxtal import pyxtal
 
-import spglib
-
-from m3gnet.models import Relaxer
+import matgl
+from matgl.ext.ase import Relaxer, PESCalculator
 
 import warnings
 
-for category in (UserWarning, DeprecationWarning):
-    warnings.filterwarnings("ignore", category=category, module="tensorflow")
+warnings.simplefilter("ignore") # To suppress warnings for clearer output
 
 star_time = time.time()
+
+# Load the M3GNet model
+pot = matgl.load_model("M3GNet-MP-2021.2.8-PES")
 
 #### Read inputs from inputs file
 
@@ -182,7 +184,7 @@ if print_terminal_outputs == True:
 
 os.mkdir('structure_files/initial_structures/relaxed_structures/')
 
-relaxer = Relaxer()
+relaxer = Relaxer(potential=pot)
 
 phase_energy_array = np.zeros((num_structures,2))
 count = 0
@@ -249,7 +251,8 @@ if comp_pressure == True:
 
     os.mkdir('structure_files/initial_structures/pressure_structures/')
 
-    relaxer = Relaxer()
+    calc = PESCalculator(potential=pot)
+    ase_adaptor = AseAtomsAdaptor()
 
     pressure_energy_array = np.zeros((num_structures - 1,3))
     count = 0
@@ -265,7 +268,7 @@ if comp_pressure == True:
             relaxed_path = 'structure_files/initial_structures/relaxed_structures/structure-' + "{:06d}".format(num_struc + 1) + '.cif'
             pressure_path = 'structure_files/initial_structures/pressure_structures/structure-' + "{:06d}".format(num_struc + 1) + '.cif'
 
-        pressure_energy, count, alpha = pressure_structure(relaxer, relaxed_path, pressure_path, pressure, num_volumes, minimum_volume,
+        pressure_energy, count, alpha = pressure_structure(calc, ase_adaptor, relaxed_path, pressure_path, pressure, num_volumes, minimum_volume,
                                                            maximum_volume, print_terminal_outputs, structure_file, count)
         
         pressure_energy_array[count - 1, 0] = int(count)
