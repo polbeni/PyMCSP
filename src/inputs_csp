@@ -11,9 +11,9 @@
 dimension               =  3                   # dimension of the material; 2 or 3
 atoms                   =  ['Ga','As']         # name of the atoms in the material
 stoichiometry           =  [1,1]               # stoichiometry of the materials, has to have the same order as atoms
-num_max_atoms           =  2                   # maximum number of atoms that we want in the unit cell
-num_same_phase          =  1                   # number of generated structures for the same space group and stoichiometry
-max_ionic_steps         =  10                 # maximum number of ionic steps for the relaxation of the structures
+num_max_atoms           =  20                  # maximum number of atoms that we want in the unit cell
+num_same_phase          =  10                  # number of generated structures for the same space group and stoichiometry
+max_ionic_steps         =  250                 # maximum number of ionic steps for the relaxation of the structures
 pressure                =  1e8                 # desired pressure in Pa (only considered for pressure computations)
 num_volumes             =  30                  # number of different volumes to determine enthalpy curves (only considered for pressure computations)
 minimum_volume          =  0.8                 # proportion with respect the original volume (V0) of the minimum desired volume (Vmin) for pressure calculations (Vmin=minimum_volume*V0) (only considered for pressure computations)
