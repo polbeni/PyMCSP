@@ -168,7 +168,7 @@ def option_4(inputs):
     print(f'num_vols                =  {int(inputs[17])}')
     print(f'coef_quad               =  {float(inputs[18])}')
     print(f'print_terminal_outputs  =  {inputs[19]}')
-    print(f'save_log_file           =  {inputs[18]}')
+    print(f'save_log_file           =  {inputs[20]}')
     print('')
     print('Are they correct? (write yes or no)')
     print('o---------------------------------------------------o')
