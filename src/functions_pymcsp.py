@@ -346,6 +346,105 @@ def write_in_file_pressure(file_object, structure_path, struc_num, enthalpy, ene
     return
 
 
+def deduplicate_file(path_energy_file, struc_path, num_structures, type_output, prec_group):
+    """
+    Creates a file with deduplicated energy phases
+
+    Inputs:
+        path_energy_file: path to the energy ranking of structures file
+        struc_path: path to the directory with the structures
+        num_structures: total number of structures (in the directory and the energy ranking file (same))
+        type_output: the crystal type of output file, poscar or cif
+        prec_group: precision for the phase determination with spglib
+    """
+
+    energy_threshold = 0.0005 # 0.5 meV/atom, typical computational resolution of DFT
+
+    non_considered_structures = list(range(num_structures))
+
+    energy_file = open(path_energy_file, 'r')
+    energy_file_deduplicate = open(struc_path + 'energy_deduplicate.txt', 'w')
+
+    line_file = energy_file.readline()
+    energy_file_deduplicate.write(line_file)
+
+    num_new_struc = 0
+    for struc in range(num_structures):
+        line_file = energy_file.readline()
+
+        file_name = line_file.split()[1]
+        energy_struc = float(line_file.split()[2])
+        space_group = line_file.split()[3] + ' ' + line_file.split()[4]
+
+        if (struc in non_considered_structures) and (struc != (num_structures - 1)):
+            non_considered_structures.remove(struc)
+            energy_file2 = open(path_energy_file, 'r')
+            for iter in range(struc + 2):
+                energy_file2.readline()
+            
+            finish_condition = False
+            while_it = 0
+            while finish_condition == False:
+                line_file2 = energy_file2.readline()
+
+                file_name2 = line_file2.split()[1]
+                energy_struc2 = float(line_file2.split()[2])
+                space_group2 = line_file2.split()[3] + ' ' + line_file.split()[4]
+
+                while_it = while_it + 1
+
+                if abs(energy_struc - energy_struc2) <= energy_threshold:
+                    if energy_struc >= energy_struc2:
+                        if type_output == 'poscar':
+                            structure = Poscar.from_file(struc_path + '/' + file_name).structure
+                            structure2 = Poscar.from_file(struc_path + '/' + file_name2).structure
+                        elif type_output == 'cif':
+                            parser = CifParser(struc_path + '/' + file_name)
+                            structure = parser.get_structures()[0]
+                            parser2 = CifParser(struc_path + '/' + file_name2)
+                            structure2 = parser2.get_structures()[0]
+
+                        num_atoms = structure.num_sites
+                        num_atoms2 = structure2.num_sites
+
+                        if num_atoms > num_atoms2:
+                            file_name = file_name2
+                            energy_struc = energy_struc2
+                            space_group = space_group2
+                        elif num_atoms == num_atoms2:
+                            structure_symmetry = SpacegroupAnalyzer(structure=structure, symprec=prec_group)
+                            symmetry = structure_symmetry.get_space_group_number()
+                            structure_symmetry2 = SpacegroupAnalyzer(structure=structure2, symprec=prec_group)
+                            symmetry2 = structure_symmetry2.get_space_group_number()
+
+                            if symmetry < symmetry2:
+                                file_name = file_name2
+                                energy_struc = energy_struc2
+                                space_group = space_group2
+                                
+                    non_considered_structures.remove(struc + while_it)
+                else:
+                    finish_condition = True
+                    non_considered_structures.remove(struc + while_it)
+
+                if (struc + while_it) == num_structures - 1:
+                    finish_condition = True
+            
+            num_new_struc = num_new_struc + 1
+
+            energy_file_deduplicate.write(f'{num_new_struc}       {file_name}       {energy_struc}       {space_group}\n')
+
+        elif (struc in non_considered_structures) and (struc == (num_structures - 1)):
+            num_new_struc = num_new_struc + 1
+
+            energy_file_deduplicate.write(f'{num_new_struc}       {file_name}       {energy_struc}       {space_group}\n')
+
+    energy_file.close()
+    energy_file_deduplicate.close()
+
+    return
+
+
 def create_dir_generation(number_generation):
     """
     Creates the necessary directories to store all the files for each generation
@@ -884,6 +983,9 @@ def csp_study(inputs):
 
     file_energy.close()
 
+    deduplicate_file('structure_files/relaxed_structures/energy_ranking.txt', 'structure_files/relaxed_structures/', 
+                     num_structures, structure_file, prec_group_det)
+
     end_time = time.time()
     elapsed_time = end_time - start_time
 
@@ -958,13 +1060,13 @@ def pressure_computations(inputs):
             num_structures = num_structures + 1
 
     if print_terminal_outputs == True:
-        print(f'Number of structures to study with pressure conditions: {num_structures - 1}')
+        print(f'Number of structures to study with pressure conditions: {num_structures - 2}')
 
     if os.path.exists('structure_files/pressure_structures/'):
         shutil.rmtree('structure_files/pressure_structures/')
     os.mkdir('structure_files/pressure_structures/')
 
-    pressure_energy_array = np.zeros((num_structures - 1, 4))
+    pressure_energy_array = np.zeros((num_structures - 2, 4))
     count = 0
 
     if print_terminal_outputs == True:
@@ -973,7 +1075,7 @@ def pressure_computations(inputs):
     calc = energy_function(retrained=retrain, retrained_path=retrain_path)
     ase_adaptor = AseAtomsAdaptor()
 
-    for num_struc in range(num_structures - 1):
+    for num_struc in range(num_structures - 2):
         if structure_file == 'poscar':
             relaxed_path = struc_path + '/POSCAR-' + "{:06d}".format(num_struc + 1)
             pressure_path = 'structure_files/pressure_structures/POSCAR-' + "{:06d}".format(num_struc + 1)
@@ -1009,7 +1111,7 @@ def pressure_computations(inputs):
         file_energy.write('#       structure-num.cif       enthalpy per atom (eV)       energy per atom (eV)       alpha       Space Group (Hermann-Mauguin)\n')
 
     count = 1
-    for num_struc in range(num_structures - 1):
+    for num_struc in range(num_structures - 2):
         struc_number = int(phase_energy_sorted_pressure[num_struc,0])
         struc_energy = phase_energy_sorted_pressure[num_struc,1]
         struc_alpha = phase_energy_sorted_pressure[num_struc,2]
@@ -1030,6 +1132,9 @@ def pressure_computations(inputs):
         count = count + 1
 
     file_energy.close()
+
+    deduplicate_file('structure_files/pressure_structures/energy_ranking_pressure.txt', 'structure_files/pressure_structures/', 
+                     num_structures - 2, structure_file, prec_group_det)
 
     end_time = time.time()
     elapsed_time = end_time - start_time
@@ -1287,6 +1392,9 @@ def generations_loop(inputs):
         num_phase = num_phase + 1
         
     final_energy_file.close()
+
+    deduplicate_file('structure_files/generations/final_structures/energy_ranking.txt', 'structure_files/generations/final_structures/', 
+                     num_phase - 1, structure_file, prec_group_det)
 
     end_time = time.time()
     elapsed_time = end_time - start_time
