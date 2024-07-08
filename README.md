@@ -1,59 +1,64 @@
 # PyMCSP. Python and Machine Learning for Crystal Structure Prediction and Diffraction Study
 
-One of the most important and critical problems in materials science is to know the crystal structure or structures for a given material. The position that ions occupy in the unit cell of a crystal and in the periodic table of elements fully determines the physical, chemical and functional properties of the material, from if the material is an insulator, conductor or semiconductor to more exotic phenomena as superconductivity. Thus, it is important to know the crystal structures of the different materials. Scattering experiments (as X-ray diffraction) help experimental scientists to determine these structures, but sometimes we could be interested in performing simulations of materials that have not been synthesized yet and of which we know nothing of their structural properties. Crystal structure prediction methods [[1]](#1), are methodologies that look for local (and hopefully the global) minimums of energy, thus for the stable and metastable phases of crystal materials. These methods usually present a good performance and in some cases are able to find novel phases, but it is necessaty to use supercomputer facilities and a lot of computer time, since they usually perform plenty of DFT simulations.
+One of the most important and critical problems in materials science is determining the crystal structure or structures of a given material. The positions that ions occupy in the unit cell of a crystal, along with their placement in the periodic table of elements, fully determine the physical, chemical, and functional properties of the material. These properties range from whether the material is an insulator, conductor, or semiconductor to more exotic phenomena such as superconductivity. Thus, it is essential to know the crystal structures of different materials. Scattering experiments, such as X-ray diffraction, help experimental scientists determine these structures. However, sometimes we are interested in performing simulations of materials that have not yet been synthesized and about which we know nothing of their structural properties.
 
-In this context, we present **PyMCSP** a **P**ython and **M**achine Learning methods implementation for **C**rystal **S**tructure **P**rediction. This is intended to be a method to find novel phases for well known or new materials at reasonable frame times, few minutes to few hours in a standard user's computer.
+Crystal structure prediction methods [[1]](#1) are methodologies that search for local (and hopefully global) minima of energy to find the stable and metastable phases of crystal materials. These methods usually perform well and, in some cases, are able to discover novel phases. However, they require the use of supercomputer facilities and a significant amount of computer time, as they typically involve many density functional theory (DFT) simulations.
+
+In this context, we present **PyMCSP**, a **P**ython implementation and **M**achine-Learning Interatomic Potentials for **C**rystal **S**tructure **P**rediction and Diffraction Stuyd. This method is intended to find novel phases for well-known or new materials within reasonable time frames, ranging from a few minutes to a few hours on a standard user's computer.
 
 ## How it works
 
-From a given chemical compounds and stoichiometry, the program constructs random crystal structures with the phase groups that are compatible with the given stoichiometry. To do this [PyXtal](https://github.com/qzhu2017/PyXtal) [[2]](#2) Python library is used.
+Given a chemical compound and its stoichiometry, the program constructs random crystal structures with phase groups compatible with the given stoichiometry. To achieve this, the [PyXtal](https://github.com/qzhu2017/PyXtal) [[2]](#2) Python library is used.
 
-For the found structures, an ionic relaxation is performed for each of these structures with [M3GNet](https://github.com/materialsvirtuallab/m3gnet) [[3]](#3). M3GNet implement machine-learning interatomic potentials, thus relaxations can be performed in few seconds with a regular computer (instead of minutes or hours in a supercomputer). After this, it is strongly recommended to perform DFT relaxations with the most interesting resulting phases.
+For the generated structures, ionic relaxation is performed using [M3GNet](https://github.com/materialsvirtuallab/m3gnet) [[3]](#3). M3GNet implements machine-learning interatomic potentials, allowing relaxations to be performed in a few seconds on a regular computer (instead of minutes or hours on a supercomputer). After this, it is strongly recommended to perform DFT relaxations on the most interesting resulting phases.
 
-The relaxed structures are interesting enough to finish the process, but it is also possible to distort structures (with Gaussian noise) and relax them again in order to be able to reach unexplored low-energy phases. This is implemented with a simple Metropolis Algorithm, the ions of the less energetic phases after the initial relaxation are distorted and the new phases are relaxed. After these relaxations their energies are computed, and if are smaller than the original energies the new phase is accepted, if it is not we reject this phase. If we repeat this enough times (in what we call Generations Loop), thus, we have enough generations, we should be able to explore the unreached minimums in the energy hypersurface. 
+The relaxed structures are interesting enough to conclude the process, but it is also possible to distort the structures (with Gaussian noise) and relax them again to explore unexplored low-energy phases. This is implemented using a simple Metropolis algorithm: the ions of the lowest energy phases after the initial relaxation are distorted, and the new phases are relaxed. After these relaxations, their energies are computed. If the new phase has a lower energy than the original, it is accepted; otherwise, it is rejected. Repeating this process enough times (in what we call the Generations Loop) should allow us to explore the unreached minima in the energy hypersurface.
 
-It is also possible to look for crystal phases with a fixed pressure. The desired pressure can be introduced as an input and after the relaxation of the found structures, the program will determine the compressed structures and energies for the given pressure. For now, the program only takes into account compressions or expansions of the unit cell. Given a pressure the volume of the distorted structure can be found minimizing the enthalpy, $H$, that can be computed with:
+The program also allows for the search of crystal phases under fixed pressure. The desired pressure can be input, and after relaxing the found structures, the program will determine the compressed structures and energies for the given pressure. Currently, the program only accounts for compressions or expansions of the unit cell. Given a pressure, the volume of the distorted structure can be found by minimizing the enthalpy, $H$, which can be computed as:
 
-$H(p,V)=E(V)+pV.$
+$H(p,V)=E(V)+pV,$
 
-After this we rank the pressurized structures as function of the enthalpy (instead of the internal energy as is the case of computations without pressure).
+where $V$ has to be selected in a way that minimizes $H$ for a fixed pressure:
 
+$\left. \frac{\partial H(p,V)}{\partial V} \right|_{p} = 0.$
 
-Since it is possible to re-train M3GNet with DFT results, we can use DFT materials simulation results to re-train M3GNet in order to be able to look for novel phases of similar materials, but this is not yet implemented.
+After this, the pressurized structures are ranked based on enthalpy (instead of internal energy, as in computations without pressure).
 
-We can use the determined phases with PyMCSP to predict the phase group of a given experimental diffractogram. In order to do this, we should provide a CSV file with the intensities as function of $2\theta$, the diffraction script will compare how likely are the experimental curves $I_{exp}$ and the theoretical curves $I_{theo}$. In order to do this a loss factor is computed:
+Since M3GNet can be retrained with DFT results, we can use DFT materials simulation results to retrain M3GNet to look for novel phases of similar materials.
+
+Using PyMCSP, we can predict the phase group of a given experimental diffractogram. To do this, a CSV file with the intensities as a function of $2\theta$ should be provided. The diffraction script will compare the experimental curves $I_{exp}$ with the theoretical curves $I_{theo}$ by computing a loss factor:
 
 $Loss=a\left|n_{exp} - n_{theo} \right|^{2} + \int_{2\theta_{min}}^{2\theta_{max}}\left| I_{exp} -I_{theo} \right|^{2}d2\theta,$
 
-here, the first term penalizes big difference of peak numbers, while the second term penalizes peaks in different $2\theta$ positions. After the execution of the program, the results are shown in a file. The program also slightly varies the lattice parameters, and takes the volume that minimize the loss factor. Doing this we can match the experimental lattice parameters.
+here, the first term penalizes large differences in peak numbers, while the second term penalizes peaks in different $2\theta$ positions. After the program executes, the results are displayed in a file. The program also slightly varies the lattice parameters and selects the volume that minimizes the loss factor, thereby matching the experimental lattice parameters.
 
 ## Requirements
 
-The code has been tested in GNU/Linux operating system (Ubuntu 22.04.3 LTS) and with Python 3.10.12. The required packages to execute PyMCSP are: 
+The code has been tested on the GNU/Linux operating system (Ubuntu 22.04.3 LTS) with Python 3.10.12. The required packages to execute PyMCSP are: 
 - numpy
 - scipy
 - pymatgen
 - pyxtal
 - matgl 1.1.2
 
-The different modules can be downloaded manually, or instead execute the following command to install them automatically:
+These packages can be downloaded manually, or you can execute the following command to install them automatically:
 ```bash
 $ pip install -r requirements.txt
 ```
 
 ## Installation
 
-To download the repository use:
+To download the repository, use:
 
 ```bash
 $ git clone https://github.com/polbeni/PyMCSP
 ```
 
-Make sure to have installed all the necessary packages.
+Make sure to install all the necessary packages.
 
 ## How to use it
 
-For any calculation execute the main script `src/PyMCSP.py` with:
+For any calculation, execute the main script `src/PyMCSP.py` with:
 
 ```bash
 $ cd src
@@ -62,18 +67,17 @@ $ python3 PyMCSP.py
 
 #### Crystal Structure Prediction
 
-To perform normal crystal stucture prediction select the option `1` and verify that all the inputs are correct. The calculations will start and a directory named `structures_files` will storage the generated and relaxed structures. If you want to perform calculations with different inputs (for example, with different materials), you should save the `structures_files` directory in another place, since every time PyMCSP is executed it overwrites this directory.
+To perform crystal structure prediction, select the option `1` and verify that all the inputs are correct. The calculations will start, and a directory named `structures_files` will store the generated and relaxed structures. If you want to perform calculations with different inputs (for example, with different materials), you should save the `structures_files` directory in another location, as each time PyMCSP is executed, it overwrites this directory.
 
-Pressure computations are performed selecting the option `2`. The results will be saved in `structures_files/pressure_structures`. If you are interested in doing pressure calculations at different pressures, please save the `structures_files/pressure_structures` in a differnt directory, otherwise the former results will be overwritten.
+Pressure computations are performed by selecting the option `2`. The results will be saved in `structures_files/pressure_structures`. If you are interested in performing pressure calculations at different pressures, please save the `structures_files/pressure_structures` directory in a different location; otherwise, the previous results will be overwritten.
 
-To apply the generations loop implementation you should select the option `3`. The resulting structures will be stored in `structures_files/generations`, the results of the generation number i will be saved in `structures_files/generations/generation-i`, while the final structures will be in `structures_files/generations/final_structures`.
+To apply the generations loop implementation, select the option `3`. The resulting structures will be stored in `structures_files/generations`. The results of generation number $i$ will be saved in `structures_files/generations/generation-i`, while the final structures will be in `structures_files/generations/final_structures`.
+
+To perform pressure calculations or generations loops, it is necessary to have previously performed a crystal structure prediction calculation with option `1`, or provide the path to some of these results in the input file.
 
 #### Diffraction Study
 
-To do diffraction studies select the option `4`. 
-
-
-It is also important that you previously generate structures with PyMCSP.
+To do diffraction studies, select the option `4`.A CSV file with the experimental data should be provided, with the $2\theta$ values in the first column and $I$ A crystal structure prediction calculation must have been performed previously, as the program uses the found structures to compare with the experimental diffraction data. From the experimental diffractogram, the software reconstructs a clean diffraction curve to compare with the theoretically computed curves. Using option `5`, it is possible to tune the generation of the clean diffraction curve. Manually introduce the number of prominence and width of the peaks to identify the peaks of interest.
 
 ## Authors
 
