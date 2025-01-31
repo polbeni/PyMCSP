@@ -1,5 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - July 2024
+# September 2023 - January 2025
 # Version 1.0
 
 # Functions for output messages in terminal
@@ -70,6 +70,8 @@ def option_1(inputs):
     print(f'prec_group_det          =  {float(inputs[13])}')
     print(f'retrain                 =  {inputs[18]}')
     print(f'retrain_path            =  {inputs[19]}')
+    print(f'restricted_phases       =  {inputs[20]}')
+    print(f'restricted_list         =  {inputs[21]}')
     print('')
     print('Are they correct? (write yes or no)')
     print('o---------------------------------------------------o')

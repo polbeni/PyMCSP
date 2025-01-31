@@ -1,5 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - July 2024
+# September 2023 - January 2025
 # Version 1.0
 
 # Functions file
@@ -10,6 +10,7 @@ import shutil
 import time
 from copy import deepcopy
 import csv
+import ast
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -45,7 +46,7 @@ def read_variables_csp(path_file):
 
     inputs = open(path_file, "r")
 
-    variables = [None]*20
+    variables = [None]*22
 
     for it in range(10):
         inputs.readline()
@@ -99,7 +100,7 @@ def read_variables_diffraction(path_file):
     return variables
 
 
-def generate_phases(stoi_dict, phase_number, dim, atoms_arr, text_output, type_output):
+def generate_phases(stoi_dict, phase_number, dim, restricted, restricted_list, atoms_arr, text_output, type_output):
     """
     Generate the initial phases
 
@@ -124,24 +125,45 @@ def generate_phases(stoi_dict, phase_number, dim, atoms_arr, text_output, type_o
         if text_output == True:
             print(f"Stoichiometry: {value}")
 
-        for num_space_group in range(num_groups[dim]):
-            try:
-                struc.from_random(dim, num_space_group+1, atoms_arr, value)
-                if type_output == 'poscar':
-                    name_file = 'structure_files/generated_structures/POSCAR-' + "{:06d}".format(phase_number)
-                elif type_output == 'cif':
-                    name_file = 'structure_files/generated_structures/structure-' + "{:06d}".format(phase_number) + '.cif'
-                struc.to_file(name_file, fmt=type_output)
+        if restricted == False:
+            for num_space_group in range(num_groups[dim]):
+                try:
+                    struc.from_random(dim, num_space_group+1, atoms_arr, value)
+                    if type_output == 'poscar':
+                        name_file = 'structure_files/generated_structures/POSCAR-' + "{:06d}".format(phase_number)
+                    elif type_output == 'cif':
+                        name_file = 'structure_files/generated_structures/structure-' + "{:06d}".format(phase_number) + '.cif'
+                    struc.to_file(name_file, fmt=type_output)
 
-                if text_output == True:
-                    print(f'Crystal structure generated with the phase group {num_space_group + 1}!')
+                    if text_output == True:
+                        print(f'Crystal structure generated with the phase group {num_space_group + 1}!')
 
-                phase_number = phase_number + 1
-            except Exception:
-                if text_output == True:
-                    print(f'No compatibility of the stoichiometry with the phase group {num_space_group + 1}')
-                else:
-                    pass
+                    phase_number = phase_number + 1
+                except Exception:
+                    if text_output == True:
+                        print(f'No compatibility of the stoichiometry with the phase group {num_space_group + 1}')
+                    else:
+                        pass
+        elif restricted == True:
+            for num_space_group in restricted_list:
+                try:
+                    struc.from_random(dim, num_space_group, atoms_arr, value)
+                    if type_output == 'poscar':
+                        name_file = 'structure_files/generated_structures/POSCAR-' + "{:06d}".format(phase_number)
+                    elif type_output == 'cif':
+                        name_file = 'structure_files/generated_structures/structure-' + "{:06d}".format(phase_number) + '.cif'
+                    struc.to_file(name_file, fmt=type_output)
+
+                    if text_output == True:
+                        print(f'Crystal structure generated with the phase group {num_space_group}!')
+
+                    phase_number = phase_number + 1
+                except Exception:
+                    if text_output == True:
+                        print(f'No compatibility of the stoichiometry with the phase group {num_space_group}')
+                    else:
+                        pass
+
 
     return phase_number
 
@@ -953,6 +975,8 @@ def csp_study(inputs):
     prec_group_det = float(inputs[13])
     retrain = inputs[18]
     retrain_path = inputs[19]
+    restricted = inputs[20]
+    restricted_list = ast.literal_eval(inputs[21])
 
 
     ### Save the log file
@@ -1010,8 +1034,8 @@ def csp_study(inputs):
 
     num_phase = 1
     for num_phase_group in range(num_same_phase):
-        total_num_phase = generate_phases(stoichiometry_dict, num_phase, dimension,
-                                        atoms, print_terminal_outputs, structure_file)
+        total_num_phase = generate_phases(stoichiometry_dict, num_phase, dimension, restricted,
+                                        restricted_list, atoms, print_terminal_outputs, structure_file)
         
         num_phase = total_num_phase
 

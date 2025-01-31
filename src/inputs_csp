@@ -1,5 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - July 2024
+# September 2023 - January 2025
 # Version 1.0
 
 # Inputs file for crystal structure prediction
@@ -28,3 +28,5 @@ max_disp                =  0.1                 # length of maximum displacement 
 struc_path              =  structure_files/relaxed_structures     # path to the found structures, has to contain the energy_ranking.txt file (only considered for pressure or generations loop)
 retrain                 =  False               # specify if wants to use a retrained M3GNet model (True) or not (False)
 retrain_path            =  path-retreined      # path to the retreined model (if applies)
+restricted_phases       =  False               # True if want to look just for a given subset of point groups
+restricted_list         =  [1,22,47,124]       # Array with the number of point groups we want to generate structures

@@ -1,5 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - July 2024
+# September 2023 - January 2025
 # Version 1.0
 
 # Main script
