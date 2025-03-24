@@ -1,6 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - January 2025
-# Version 1.0
+# September 2023 - March 2025
 
 # Main script
 
@@ -27,7 +26,7 @@ while finish_condition == False:
     user_input = input()
 
     if user_input == '1':
-        inputs_var = read_variables_csp('inputs_csp')
+        inputs_var = read_variables('inputs.yaml')
         option_1(inputs_var)
         correct = input()
         if correct == 'yes':
@@ -39,7 +38,7 @@ while finish_condition == False:
             error_message()
 
     elif user_input == '2':
-        inputs_var = read_variables_csp('inputs_csp')
+        inputs_var = read_variables('inputs.yaml')
         option_2(inputs_var)
         correct = input()
         if correct == 'yes':
@@ -51,7 +50,7 @@ while finish_condition == False:
             error_message()
 
     elif user_input == '3':
-        inputs_var = read_variables_csp('inputs_csp')
+        inputs_var = read_variables('inputs.yaml')
         option_3(inputs_var)
         correct = input()
         if correct == 'yes':
@@ -63,7 +62,7 @@ while finish_condition == False:
             error_message()
 
     elif user_input == '4':
-        inputs_var = read_variables_diffraction('inputs_diffraction')
+        inputs_var = read_variables('inputs.yaml')
         option_4(inputs_var)
         correct = input()
         if correct == 'yes':
@@ -75,7 +74,7 @@ while finish_condition == False:
             error_message()
 
     elif user_input == '5':
-        inputs_var = read_variables_diffraction('inputs_diffraction')
+        inputs_var = read_variables('inputs.yaml')
         option_5()
         correct_parameters = False
         while correct_parameters == False:
@@ -85,7 +84,6 @@ while finish_condition == False:
             print('Are the results okay? (answer yes or no)')
             agreement = input()
             if agreement == 'yes':
-                change_exp_tuned_parameters(prominance, width, 'inputs_diffraction')
                 correct_parameters = True
                 finish_condition = True
                 option_5_final()

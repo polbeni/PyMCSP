@@ -1,6 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - July 2024
-# Version 1.0
+# September 2023 - March 2025
 
 # Diffraction module
 
@@ -17,72 +16,39 @@ from pymatgen.analysis.diffraction.neutron import NDCalculator
 
 from functions_pymcsp import *
 from terminal_outputs import *
+from read_inputs import *
 
 
 log_file = 'output_diffraction.log'
 
-#### Read inputs from inputs file
+#### Load default inputs and look for new inputs in a YAML file
 
-path_structures = None
-structure_file = None
-name_exp_diff  = None
-clean_substrate = None
-path_substrate = None
-tolerance_subs = None
-type_diffraction = None
-wl_xray = None
-wl_neutron = None
-min_2theta = None
-max_2theta = None
-total_num_points = None
-peak_width = None
-type_interpolation = None
-prominance_exp = None
-width_exp = None
-prop_vol = None
-num_vols = None
-coef_quad = None
+if os.path.exists('inputs.yaml'):
+    config = InputsPyMCSP('inputs.yaml')
+else:
+    config = InputsPyMCSP()
 
-inputs = open('inputs_diffraction', "r")
-
-variables = [None]*21
-
-for it in range(12):
-    inputs.readline()
-
-for it in range(len(variables)):
-    line = inputs.readline()
-
-    if line.split()[2] == 'True':
-        variables[it] = True
-    elif line.split()[2] == 'False':
-        variables[it] = False
-    else:
-        variables[it] = line.split()[2]
-
-inputs.close()
-
-path_structures = variables[0]
-structure_file = variables[1]
-name_exp_diff  = variables[2]
-clean_substrate = variables[3]
-path_substrate = variables[4]
-tolerance_subs = float(variables[5])
-type_diffraction = variables[6]
-wl_xray = variables[7]
-wl_neutron = float(variables[8])
-min_2theta = float(variables[9])
-max_2theta = float(variables[10])
-total_num_points = int(variables[11])
-peak_width = float(variables[12])
-type_interpolation = variables[13]
-prominance_exp = float(variables[14])
-width_exp = float(variables[15])
-prop_vol = float(variables[16])
-num_vols = int(variables[17])
-coef_quad = float(variables[18])
-print_terminal_outputs = variables[19]
-save_log_file = variables[20]
+path_structures = config.path_structures
+structure_file = config.structure_file
+name_exp_diff  = config.name_exp_diff
+clean_substrate = config.clean_substrate
+path_substrate = config.path_substrate
+tolerance_subs = config.tolerance_subs
+type_diffraction = config.type_diffraction
+wl_xray = config.wl_xray
+wl_neutron = config.wl_neutron
+min_2theta = config.min_2theta
+max_2theta = config.max_2theta
+total_num_points = config.total_num_points
+peak_width = config.peak_width
+type_interpolation = config.type_interpolation
+prominance_exp = config.prominance_exp
+width_exp = config.width_exp
+prop_vol = config.prop_vol
+num_vols = config.num_vols
+coef_quad = config.coef_quad
+print_terminal_outputs = config.print_terminal_outputs
+save_log_file = config.save_log_file
 
 
 #### Log file

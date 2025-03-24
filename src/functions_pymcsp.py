@@ -1,6 +1,5 @@
 # Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - January 2025
-# Version 1.0
+# September 2023 - March 2025
 
 # Functions file
 
@@ -11,6 +10,8 @@ import time
 from copy import deepcopy
 import csv
 import ast
+
+from read_inputs import *
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -36,68 +37,20 @@ import warnings
 warnings.simplefilter("ignore") # To suppress warnings for clearer output
 
 
-def read_variables_csp(path_file):
+def read_variables(path_file):
     """
-    Read the variables from the inputs_csp file and returns an array with their values
+    Take the default variables, and if a YAML inputs file is provided it update those variables
 
     Inputs:
-        path_file: path of the inputs file
+        path_file: path to the inputs.yaml file
     """
 
-    inputs = open(path_file, "r")
+    if os.path.exists(path_file):
+        config = InputsPyMCSP(path_file)
+    else:
+        config = InputsPyMCSP()
 
-    variables = [None]*22
-
-    for it in range(10):
-        inputs.readline()
-
-    for it in range(len(variables)):
-        line = inputs.readline()
-
-        if line.split()[2] == 'True':
-            variables[it] = True
-        elif line.split()[2] == 'False':
-            variables[it] = False
-        elif (it == 1) or (it == 2):
-            parts = line.strip().split('=')
-
-            variables[it] = eval(parts[1].strip())
-        else:
-            variables[it] = line.split()[2]
-
-    inputs.close()
-
-    return variables
-
-
-def read_variables_diffraction(path_file):
-    """
-    Read the variables from the inputs_diffraction file and returns an array with their values
-
-    Inputs:
-        path_file: path of the inputs file
-    """
-
-    inputs = open(path_file, "r")
-
-    variables = [None]*21
-
-    for it in range(12):
-        inputs.readline()
-
-    for it in range(len(variables)):
-        line = inputs.readline()
-
-        if line.split()[2] == 'True':
-            variables[it] = True
-        elif line.split()[2] == 'False':
-            variables[it] = False
-        else:
-            variables[it] = line.split()[2]
-
-    inputs.close()
-
-    return variables
+    return config
 
 
 def generate_phases(stoi_dict, phase_number, dim, restricted, restricted_list, atoms_arr, text_output, type_output):
@@ -963,20 +916,20 @@ def csp_study(inputs):
 
     start_time = time.time()
 
-    dimension = int(inputs[0])
-    atoms = inputs[1]
-    stoichiometry = inputs[2]
-    num_max_atoms = int(inputs[3])
-    num_same_phase = int(inputs[4])
-    max_ionic_steps = int(inputs[5])
-    print_terminal_outputs = inputs[10]
-    save_log_file = inputs[11]
-    structure_file = inputs[12]
-    prec_group_det = float(inputs[13])
-    retrain = inputs[18]
-    retrain_path = inputs[19]
-    restricted = inputs[20]
-    restricted_list = ast.literal_eval(inputs[21])
+    dimension = inputs.dimension
+    atoms = inputs.atoms
+    stoichiometry = inputs.stoichiometry
+    num_max_atoms = inputs.num_max_atoms
+    num_same_phase = inputs.num_same_phase
+    max_ionic_steps = inputs.max_ionic_steps
+    print_terminal_outputs = inputs.print_terminal_outputs
+    save_log_file = inputs.save_log_file
+    structure_file = inputs.structure_file
+    prec_group_det = inputs.prec_group_det
+    retrain = inputs.retrain
+    retrain_path = inputs.retrain_path
+    restricted = inputs.restricted_phases
+    restricted_list = inputs.restricted_list
 
 
     ### Save the log file
@@ -1143,17 +1096,17 @@ def pressure_computations(inputs):
 
     start_time = time.time()
 
-    pressure = float(inputs[6])
-    num_volumes = int(inputs[7])
-    minimum_volume = float(inputs[8]) 
-    maximum_volume = float(inputs[9])
-    print_terminal_outputs = inputs[10]
-    save_log_file = inputs[11]
-    structure_file = inputs[12]
-    prec_group_det = float(inputs[13])
-    struc_path = inputs[17]
-    retrain = inputs[18]
-    retrain_path = inputs[19]
+    pressure = inputs.pressure
+    num_volumes = inputs.num_volumes
+    minimum_volume = inputs.minimum_volume 
+    maximum_volume = inputs.maximum_volume
+    print_terminal_outputs = inputs.print_terminal_outputs
+    save_log_file = inputs.save_log_file
+    structure_file = inputs.structure_file
+    prec_group_det = inputs.prec_group_det
+    struc_path = inputs.struc_path
+    retrain = inputs.retrain
+    retrain_path = inputs.retrain_path
 
     ### Save the log file
         
@@ -1293,17 +1246,17 @@ def generations_loop(inputs):
 
     start_time = time.time()
 
-    max_ionic_steps = int(inputs[5])
-    print_terminal_outputs = inputs[10]
-    save_log_file = inputs[11]
-    structure_file = inputs[12]
-    prec_group_det = float(inputs[13])
-    num_generations = int(inputs[14])
-    surviving_phases = float(inputs[15])
-    max_disp = float(inputs[16])
-    struc_path = inputs[17]
-    retrain = inputs[18]
-    retrain_path = inputs[19]
+    max_ionic_steps = inputs.max_ionic_steps
+    print_terminal_outputs = inputs.print_terminal_outputs
+    save_log_file = inputs.save_log_file
+    structure_file = inputs.structure_file
+    prec_group_det = inputs.prec_group_det
+    num_generations = inputs.num_generations
+    surviving_phases = inputs.surviving_phases
+    max_disp = inputs.max_disp
+    struc_path = inputs.struc_path
+    retrain = inputs.retrain
+    retrain_path = inputs.retrain_path
 
     ### Save the log file
         
@@ -1539,34 +1492,5 @@ def generations_loop(inputs):
     if save_log_file == True:
         log_file_handle.close()
         sys.stdout = sys.__stdout__
-
-    return
-
-
-def change_exp_tuned_parameters(prominance, width, inputs_path):
-    """
-    Change the inputs_diffraction file with the new prominance and widht parameters
-
-    Inputs:
-        prominance: how much peak stands out respect the baseline
-        width: width of the peaks
-        inputs_path: path to inputs_diffraction file
-    """
-
-    string_array = []
-    inputs = open(inputs_path, 'r')
-    for num_lines in range(33):
-        actual_line = inputs.readline()
-        string_array.append(actual_line)
-    inputs.close()
-
-    inputs = open(inputs_path, 'w')
-    for num_lines in range(26):
-        inputs.write(string_array[num_lines])
-    inputs.write(f'prominance_exp          =  {prominance}\n')
-    inputs.write(f'width_exp               =  {width}\n')
-    for num_lines in range(5):
-        inputs.write(string_array[num_lines + 28])
-    inputs.close()
 
     return
