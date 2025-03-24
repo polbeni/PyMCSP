@@ -1,14 +1,4 @@
-# Pol Benítez Colominas, Universitat Politècnica de Catalunya
-# September 2023 - July 2024
-# Version 1.0
-
 # Inputs file for diffraction study
-
-# Adjust the values of the variables
-# IMPORTANT: Do not change the structure of this file and let an space between
-# the variable name and equal sign, and between equal sign and the value
-# IMPORTANT2: XRDCalculator and NDCalculator have wavelength variable, for now using the default values
-# read https://pymatgen.org/pymatgen.analysis.diffraction.html
 
 path_structures         =  structure_files/relaxed_structures/   # path to the theoretical phases and energy_ranking.txt file
 structure_file          =  poscar              # type of structure file for the theoretical phases (poscar or cif), and the substrate file (if applies)
@@ -17,8 +7,8 @@ clean_substrate         =  False               # remove the peaks related with t
 path_substrate          =  SnO2.poscar         # if clean_substrate==True provide path to the substrate structure file, if clean_substrate==False, do not change this variable
 tolerance_subs          =  0.1                 # tolerance threshold to accept substrate and experimental peak as the same peak (in º)
 type_diffraction        =  x-ray               # type of experimental diffraction method, x-ray or neutron
-wl_xray                 =  CuKa                # default value for x-ray experiments (read IMPORTANT2)
-wl_neutron              =  1.54184             # default value for neutron experiments (read IMPORTANT2)
+wl_xray                 =  CuKa                # default value for x-ray experiments (read IMPORTANT)
+wl_neutron              =  1.54184             # default value for neutron experiments (read IMPORTANT)
 min_2theta              =  20                  # minimum value of 2theta range (in º)
 max_2theta              =  60                  # maximum value of 2theta range (in º)
 total_num_points        =  2000                # number of points in 2theta range, recommended not decrease or change the value
@@ -31,3 +21,6 @@ num_vols                =  20                  # number of volumes to study betw
 coef_quad               =  0.01                # quadratic coefficient for the difference of peaks number penalization
 print_terminal_outputs  =  True                # activate (True) or deactivate (False) the information provided via terminal
 save_log_file           =  True                # save a log file of the execution (True) or not (False)
+
+# IMPORTANT: XRDCalculator and NDCalculator have wavelength variable, for now using the default values
+# read https://pymatgen.org/pymatgen.analysis.diffraction.html
