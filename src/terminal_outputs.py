@@ -68,12 +68,17 @@ def option_1(inputs):
     print(f'structure_file          =  {inputs.structure_file}')
     print(f'prec_group_det          =  {inputs.prec_group_det}')
     print(f'retrain                 =  {inputs.retrain}')
-    print(f'retrain_path            =  {inputs.retrain_path}')
+    if inputs.retrain == True:
+        print(f'retrain_path            =  {inputs.retrain_path}')
     print(f'restricted_phases       =  {inputs.restricted_phases}')
-    print(f'restricted_list         =  {inputs.restricted_list}')
+    if inputs.restricted_phases == True:
+        print(f'restricted_list         =  {inputs.restricted_list}')
     print(f'model                   =  {inputs.model}')
     if inputs.model == 'MACE':
         print(f'mace_model              =  {inputs.mace_model}')
+        print(f'device_mace             =  {inputs.device_mace}')
+        print(f'fmax_mace               =  {inputs.fmax_mace}')
+        print(f'precision_relax_mace    =  {inputs.precision_relax_mace}')
     print('')
     print('Are they correct? (write yes or no)')
     print('o---------------------------------------------------o')
@@ -103,10 +108,14 @@ def option_2(inputs):
     print(f'prec_group_det          =  {inputs.prec_group_det}')
     print(f'struc_path              =  {inputs.struc_path}')
     print(f'retrain                 =  {inputs.retrain}')
-    print(f'retrain_path            =  {inputs.retrain_path}')
+    if inputs.retrain == True:
+        print(f'retrain_path            =  {inputs.retrain_path}')
     print(f'model                   =  {inputs.model}')
     if inputs.model == 'MACE':
         print(f'mace_model              =  {inputs.mace_model}')
+        print(f'device_mace             =  {inputs.device_mace}')
+        print(f'fmax_mace               =  {inputs.fmax_mace}')
+        print(f'precision_relax_mace    =  {inputs.precision_relax_mace}')
     print('')
     print('Are they correct? (write yes or no)')
     print('o---------------------------------------------------o')
@@ -135,10 +144,14 @@ def option_3(inputs):
     print(f'max_disp                =  {inputs.max_disp}')
     print(f'struc_path              =  {inputs.struc_path}')
     print(f'retrain                 =  {inputs.retrain}')
-    print(f'retrain_path            =  {inputs.retrain_path}')
+    if inputs.retrain == True:
+        print(f'retrain_path            =  {inputs.retrain_path}')
     print(f'model                   =  {inputs.model}')
     if inputs.model == 'MACE':
         print(f'mace_model              =  {inputs.mace_model}')
+        print(f'device_mace             =  {inputs.device_mace}')
+        print(f'fmax_mace               =  {inputs.fmax_mace}')
+        print(f'precision_relax_mace    =  {inputs.precision_relax_mace}')
     print('')
     print('Are they correct? (write yes or no)')
     print('o---------------------------------------------------o')
@@ -162,8 +175,9 @@ def option_4(inputs):
     print(f'structure_file          =  {inputs.structure_file}')
     print(f'name_exp_diff           =  {inputs.name_exp_diff}')
     print(f'clean_substrate         =  {inputs.clean_substrate}')
-    print(f'path_substrate          =  {inputs.path_substrate}')
-    print(f'tolerance_subs          =  {inputs.tolerance_subs}')
+    if inputs.clean_substrate == True:
+        print(f'path_substrate          =  {inputs.path_substrate}')
+        print(f'tolerance_subs          =  {inputs.tolerance_subs}')
     print(f'type_diffraction        =  {inputs.type_diffraction}')
     print(f'wl_xray                 =  {inputs.wl_xray}')
     print(f'wl_neutron              =  {inputs.wl_neutron}')
