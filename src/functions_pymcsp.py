@@ -172,7 +172,7 @@ def relax_structure_M3GNet(relax_object, init_struc_path, relax_struc_path, max_
     return final_energy, counter 
 
 
-def relax_structure_MACE(init_struc_path, relax_struc_path, max_steps, text_output, type_output, counter, module, model_name, device, fmax):
+def relax_structure_MACE(init_struc_path, relax_struc_path, max_steps, text_output, type_output, counter, module, model_name, device, fmax, prec_mace):
     """
     Relax an structure and get the energy (for MACE)
     Since in the optimization sometimes the energy increases and decreases to a unphysical values, every step
@@ -189,6 +189,7 @@ def relax_structure_MACE(init_struc_path, relax_struc_path, max_steps, text_outp
         model_name: name of the MACE model to use, 'large' if default, another name or path if retrained
         device: device to use MACE (cpu or cuda)
         fmax: maximum force
+        prec_mace: numerical precision for mace relaxation (dtype32 is faster than dtype64 but less accurate)
     """
 
     crystal_structure = Structure.from_file(init_struc_path)
@@ -196,7 +197,7 @@ def relax_structure_MACE(init_struc_path, relax_struc_path, max_steps, text_outp
     ase_adaptor = AseAtomsAdaptor()
     atoms = ase_adaptor.get_atoms(crystal_structure)
 
-    atoms.calc = module(model=model_name, device=device, default_dtype='float64')
+    atoms.calc = module(model=model_name, device=device, default_dtype=prec_mace)
 
     atoms_filter = FrechetCellFilter(atoms) # allow lattice parameters to change
 
@@ -321,7 +322,7 @@ def pressure_structure_M3GNet(calc_object, ase_adaptor_object, relax_struc_path,
     return final_enthalpy, final_energy, counter, alpha_min_enthalpy
 
 
-def pressure_structure_MACE(ase_adaptor_object, relax_struc_path, pressure_struc_path, pressure, number_volumes, min_alpha, max_alpha, text_output, type_output, counter, module, mace_device, mace_model):
+def pressure_structure_MACE(ase_adaptor_object, relax_struc_path, pressure_struc_path, pressure, number_volumes, min_alpha, max_alpha, text_output, type_output, counter, module, mace_device, mace_model, prec_mace):
     """
     Find the structure that minimizes enthalpy for a given pressure, and returnes the energy and alpha (where alpha is the proportional
     volume that that verifies the minimization) (for MACE)
@@ -340,6 +341,7 @@ def pressure_structure_MACE(ase_adaptor_object, relax_struc_path, pressure_struc
         module: MACE module 
         mace_device: device to use with MACE (cpu or cuda)
         mace_model: MACE model to use
+        prec_mace: numerical precision for mace relaxation (dtype32 is faster than dtype64 but less accurate)
     """
 
     relaxed_structure = Structure.from_file(relax_struc_path)
@@ -361,7 +363,7 @@ def pressure_structure_MACE(ase_adaptor_object, relax_struc_path, pressure_struc
 
         atoms = ase_adaptor_object.get_atoms(distorted)
 
-        atoms.calc = module(model=mace_model, device=mace_device, default_dtype='float64')
+        atoms.calc = module(model=mace_model, device=mace_device, default_dtype=prec_mace)
 
         energy_volume = atoms.get_potential_energy() / num_atoms
 
@@ -382,7 +384,7 @@ def pressure_structure_MACE(ase_adaptor_object, relax_struc_path, pressure_struc
     pressurized_structure.to(filename=pressure_struc_path, fmt=type_output)
 
     atoms = ase_adaptor_object.get_atoms(pressurized_structure)
-    atoms.calc = module(model=mace_model, device=mace_device, default_dtype='float64')
+    atoms.calc = module(model=mace_model, device=mace_device, default_dtype=prec_mace)
 
 
     if alpha_min_enthalpy != new_alpha_range[-1]:
@@ -737,7 +739,7 @@ def relax_structure_gen_M3GNet(relax_object, dist_struc_path, relax_struc_path, 
     return final_energy
 
 
-def relax_structure_gen_MACE(dist_struc_path, relax_struc_path, max_steps, text_output, type_output, module, model_name, device, fmax):
+def relax_structure_gen_MACE(dist_struc_path, relax_struc_path, max_steps, text_output, type_output, module, model_name, device, fmax, prec_mace):
     """
     Relax an structure and get the energy for the generations part of the main code (for MACE)
 
@@ -751,6 +753,7 @@ def relax_structure_gen_MACE(dist_struc_path, relax_struc_path, max_steps, text_
         model_name: name of the MACE model to use, 'large' if default, another name or path if retrained
         device: device to use MACE (cpu or cuda)
         fmax: maximum force
+        prec_mace: numerical precision for mace relaxation (dtype32 is faster than dtype64 but less accurate)
     """
 
     crystal_structure = Structure.from_file(dist_struc_path)
@@ -758,7 +761,7 @@ def relax_structure_gen_MACE(dist_struc_path, relax_struc_path, max_steps, text_
     ase_adaptor = AseAtomsAdaptor()
     atoms = ase_adaptor.get_atoms(crystal_structure)
 
-    atoms.calc = module(model=model_name, device=device, default_dtype='float64')
+    atoms.calc = module(model=model_name, device=device, default_dtype=prec_mace)
 
     atoms_filter = FrechetCellFilter(atoms) # allow lattice parameters to change
 
@@ -1117,6 +1120,7 @@ def csp_study(inputs):
     device_mace = inputs.device_mace
     fmax_mace = inputs.fmax_mace
     mace_model = inputs.mace_model
+    precision_relax_mace = inputs.precision_relax_mace
 
     if model == 'MACE':
         mace_mp = import_MLIP(model)
@@ -1232,7 +1236,7 @@ def csp_study(inputs):
         elif model == 'MACE':
             relax_energy, count = relax_structure_MACE(initial_path, relaxed_path, max_ionic_steps, 
                                                  print_terminal_outputs, structure_file, count, mace_mp, mace_model,
-                                                 device_mace, fmax_mace)
+                                                 device_mace, fmax_mace, precision_relax_mace)
         
         phase_energy_array[count - 1, 0] = int(count)
         phase_energy_array[count - 1, 1] = relax_energy
@@ -1308,6 +1312,7 @@ def pressure_computations(inputs):
     model = inputs.model
     device_mace = inputs.device_mace
     mace_model = inputs.mace_model
+    precision_relax_mace = inputs.precision_relax_mace
 
     if model == 'MACE':
         mace_mp = import_MLIP(model)
@@ -1387,7 +1392,7 @@ def pressure_computations(inputs):
                                                                                   minimum_volume,maximum_volume, print_terminal_outputs, structure_file, count)
         elif model == 'MACE':
             pressure_enthalpy, pressure_energy, count, alpha = pressure_structure_MACE(ase_adaptor, relaxed_path, pressure_path, pressure, num_volumes, 
-                                                                                  minimum_volume,maximum_volume, print_terminal_outputs, structure_file, count, mace_mp, device_mace, mace_model)
+                                                                                  minimum_volume,maximum_volume, print_terminal_outputs, structure_file, count, mace_mp, device_mace, mace_model, precision_relax_mace)
             
         pressure_energy_array[count - 1, 0] = int(count)
         pressure_energy_array[count - 1, 1] = pressure_energy
@@ -1473,6 +1478,7 @@ def generations_loop(inputs):
     device_mace = inputs.device_mace
     fmax_mace = inputs.fmax_mace
     mace_model = inputs.mace_model
+    precision_relax_mace = inputs.precision_relax_mace
 
     if model == 'MACE':
         mace_mp = import_MLIP(model)
@@ -1607,7 +1613,7 @@ def generations_loop(inputs):
                                                        print_terminal_outputs, structure_file)
             elif model == 'MACE':
                 relaxed_energy = relax_structure_gen_MACE(path_dist_file, path_relax_file, max_ionic_steps,
-                                                       print_terminal_outputs, structure_file, mace_mp, mace_model, device_mace, fmax_mace)
+                                                       print_terminal_outputs, structure_file, mace_mp, mace_model, device_mace, fmax_mace, precision_relax_mace)
                 
             write_in_file_gen(file_energy, path_relax_file, struc_file, relaxed_energy, 
                                 prec_group_det, structure_file, count)

@@ -55,7 +55,8 @@ class InputsPyMCSP:
         'model': 'MACE',
         'device_mace': 'cpu',
         'fmax_mace': 0.05,
-        'mace_model': 'large'
+        'mace_model': 'large',
+        'precision_relax_mace': 'float64'
     }
 
     def __init__(self, config_file: str = None):
