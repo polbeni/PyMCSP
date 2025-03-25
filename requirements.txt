@@ -1,5 +1,0 @@
-numpy
-scipy
-pymatgen
-pyxtal
-matgl>=1.1.2
