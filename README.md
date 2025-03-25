@@ -10,7 +10,7 @@ In this context, we present **PyMCSP**, a **P**ython implementation and **M**ach
 
 Given a chemical compound and its stoichiometry, the program constructs random crystal structures with phase groups compatible with the given stoichiometry. To achieve this, the [PyXtal](https://github.com/qzhu2017/PyXtal) [[2]](#2) Python library is used.
 
-For the generated structures, ionic relaxation is performed using [M3GNet](https://github.com/materialsvirtuallab/m3gnet) [[3]](#3). M3GNet implements machine-learning interatomic potentials, allowing relaxations to be performed in a few seconds on a regular computer (instead of minutes or hours on a supercomputer). After this, it is strongly recommended to perform DFT relaxations on the most interesting resulting phases.
+For the generated structures, ionic relaxation is performed using [MACE](https://mace-docs.readthedocs.io/en/latest/index.html) [[3]](#3) or [M3GNet](https://github.com/materialsvirtuallab/m3gnet) [[4]](#4). M3GNet implements machine-learning interatomic potentials, allowing relaxations to be performed in a few seconds on a regular computer (instead of minutes or hours on a supercomputer). After this, it is strongly recommended to perform DFT relaxations on the most interesting resulting phases.
 
 The relaxed structures are interesting enough to conclude the process, but it is also possible to distort the structures (with Gaussian noise) and relax them again to explore unexplored low-energy phases. This is implemented using a simple Metropolis algorithm: the ions of the lowest energy phases after the initial relaxation are distorted, and the new phases are relaxed. After these relaxations, their energies are computed. If the new phase has a lower energy than the original, it is accepted; otherwise, it is rejected. Repeating this process enough times (in what we call the Generations Loop) should allow us to explore the unreached minima in the energy hypersurface.
 
@@ -94,6 +94,9 @@ WOODLEY, Scott M.; CATLOW, Richard. Crystal structure prediction from first prin
 FREDERICKS, Scott, et al. PyXtal: A Python library for crystal structure generation and symmetry analysis. <em>Computer Physics Communications</em>, 2021, 261: 107810.
 
 <a id="3">[3]</a> 
+BATATIA, Ilyes, et al. A foundation model for atomistic materials chemistry. <em>arXiv</em>:2401.00096.
+
+<a id="4">[4]</a> 
 CHEN, Chi; ONG, Shyue Ping. A universal graph deep learning interatomic potential for the periodic table. <em>Nature Computational Science</em>, 2022, 2.11: 718-728.
 
 
