@@ -27,8 +27,12 @@ from pymatgen.io.ase import AseAtomsAdaptor
 
 from pyxtal import pyxtal
 
-import matgl
-from matgl.ext.ase import Relaxer, PESCalculator
+from ase.optimize import BFGS, FIRE
+from ase.io.trajectory           import Trajectory
+from ase.io.vasp                 import write_vasp
+from ase.filters import FrechetCellFilter
+
+import torch
 
 from terminal_outputs import *
 
@@ -51,6 +55,22 @@ def read_variables(path_file):
         config = InputsPyMCSP()
 
     return config
+
+def import_MLIP(model):
+    """
+    Loads the modules for the MLIP models (MACE or M3GNet)
+
+    Inputs:
+        model: name of the model (MACE or M3GNet)
+    """
+
+    if model == 'MACE':
+        from mace.calculators import mace_mp
+        return mace_mp
+    elif model == 'M3GNet':
+        import matgl
+        from matgl.ext.ase import Relaxer, PESCalculator
+        return matgl, Relaxer, PESCalculator
 
 
 def generate_phases(stoi_dict, phase_number, dim, restricted, restricted_list, atoms_arr, text_output, type_output):
@@ -121,9 +141,9 @@ def generate_phases(stoi_dict, phase_number, dim, restricted, restricted_list, a
     return phase_number
 
 
-def relax_structure(relax_object, init_struc_path, relax_struc_path, max_steps, text_output, type_output, counter):
+def relax_structure_M3GNet(relax_object, init_struc_path, relax_struc_path, max_steps, text_output, type_output, counter):
     """
-    Relax an structure and get the energy
+    Relax an structure and get the energy (for M3GNet)
 
     Inputs:
         relax_object: the relaxer object by m3gnet module
@@ -147,6 +167,48 @@ def relax_structure(relax_object, init_struc_path, relax_struc_path, max_steps, 
     final_structure.to(filename=relax_struc_path, fmt=type_output)
 
     final_energy = float(relaxed_structure['trajectory'].energies[-1]/len(crystal_structure))
+    counter = counter + 1
+
+    return final_energy, counter 
+
+
+def relax_structure_MACE(init_struc_path, relax_struc_path, max_steps, text_output, type_output, counter, module, model_name, device, fmax):
+    """
+    Relax an structure and get the energy (for MACE)
+    Since in the optimization sometimes the energy increases and decreases to a unphysical values, every step
+    the energy is controlled and unphysical phases are discarted (energy = 0)
+
+    Inputs:
+        init_struc_path: the path of the structure to relax
+        relax_struc_path: the path of the relaxed structure
+        max_steps: number maximum of ionic steps
+        text_output: to decide if we want output text in terminal or not
+        type_output: the crystal type of output file, poscar or cif
+        counter: a number counter for the phase
+        module: MACE module
+        model_name: name of the MACE model to use, 'large' if default, another name or path if retrained
+        device: device to use MACE (cpu or cuda)
+        fmax: maximum force
+    """
+
+    crystal_structure = Structure.from_file(init_struc_path)
+    
+    ase_adaptor = AseAtomsAdaptor()
+    atoms = ase_adaptor.get_atoms(crystal_structure)
+
+    atoms.calc = module(model=model_name, device=device, default_dtype='float64')
+
+    atoms_filter = FrechetCellFilter(atoms) # allow lattice parameters to change
+
+    dyn = FIRE(atoms_filter) # optimization with FIRE, other options like BFGS are also available
+    dyn.run(fmax=fmax, steps=max_steps)
+
+    relaxed_atoms = atoms_filter.atoms
+    relaxed_structure = AseAtomsAdaptor().get_structure(relaxed_atoms)
+
+    relaxed_structure.to(filename=relax_struc_path, fmt=type_output)
+
+    final_energy = relaxed_atoms.get_potential_energy() / len(relaxed_atoms)
     counter = counter + 1
 
     return final_energy, counter 
@@ -185,13 +247,13 @@ def A3_to_m3(A3_volume):
     return A3_volume*1e-30
 
 
-def pressure_structure(calc_object, ase_adaptor_object, relax_struc_path, pressure_struc_path, pressure, number_volumes, min_alpha, max_alpha, text_output, type_output, counter):
+def pressure_structure_M3GNet(calc_object, ase_adaptor_object, relax_struc_path, pressure_struc_path, pressure, number_volumes, min_alpha, max_alpha, text_output, type_output, counter):
     """
     Find the structure that minimizes enthalpy for a given pressure, and returnes the energy and alpha (where alpha is the proportional
-    volume that that verifies the minimization)
+    volume that that verifies the minimization) (for M3GNet)
 
     Inputs:
-        calc_object: the single point energy calculation object by m3gnet
+        calc_object: the single point energy calculation object by M3GNet
         ase_adaptor_object: ase adaptator object necessary for single point energy calculation
         relax_struc_path: the path of the relaxed structure
         pressure_struc_path: the path of the pressurized structure
@@ -222,6 +284,7 @@ def pressure_structure(calc_object, ase_adaptor_object, relax_struc_path, pressu
         alpha_array[vol] = alpha
 
         atoms = ase_adaptor_object.get_atoms(distorted)
+
         atoms.set_calculator(calc_object)
 
         energy_volume = float(atoms.get_potential_energy())
@@ -245,8 +308,85 @@ def pressure_structure(calc_object, ase_adaptor_object, relax_struc_path, pressu
     atoms = ase_adaptor_object.get_atoms(pressurized_structure)
     atoms.set_calculator(calc_object)
 
+
     if alpha_min_enthalpy != new_alpha_range[-1]:
         final_energy = float(atoms.get_potential_energy())
+        final_enthalpy = final_energy + J_to_eV((pressure*alpha_min_enthalpy*relaxed_structure.volume*(1e-30))/num_atoms)
+    else:
+        final_energy = 0
+        final_enthalpy = 0
+
+    counter = counter + 1
+
+    return final_enthalpy, final_energy, counter, alpha_min_enthalpy
+
+
+def pressure_structure_MACE(ase_adaptor_object, relax_struc_path, pressure_struc_path, pressure, number_volumes, min_alpha, max_alpha, text_output, type_output, counter, module, mace_device, mace_model):
+    """
+    Find the structure that minimizes enthalpy for a given pressure, and returnes the energy and alpha (where alpha is the proportional
+    volume that that verifies the minimization) (for MACE)
+
+    Inputs:
+        ase_adaptor_object: ase adaptator object necessary for single point energy calculation
+        relax_struc_path: the path of the relaxed structure
+        pressure_struc_path: the path of the pressurized structure
+        pressure: value of the pressure in Pa
+        number_volumes: the number of different volumes we want compute in order to determine the enthalpy curve
+        min_alpha: minimum proportional volume
+        max_alpha: maximum proportional volume
+        text_output: to decide if we want output text in terminal or not
+        type_output: the crystal type of output file, poscar or cif
+        counter: a number counter for the phase
+        module: MACE module 
+        mace_device: device to use with MACE (cpu or cuda)
+        mace_model: MACE model to use
+    """
+
+    relaxed_structure = Structure.from_file(relax_struc_path)
+
+    num_atoms = relaxed_structure.num_sites
+
+    volume = np.zeros(number_volumes)
+    alpha_array = np.zeros(number_volumes)
+    enthalpy = np.zeros(number_volumes)
+
+    alpha = max_alpha
+
+    for vol in range(number_volumes):
+        distorted = deepcopy(relaxed_structure)
+        distorted.scale_lattice(distorted.volume * alpha)
+
+        volume[vol] = distorted.volume * alpha
+        alpha_array[vol] = alpha
+
+        atoms = ase_adaptor_object.get_atoms(distorted)
+
+        atoms.calc = module(model=mace_model, device=mace_device, default_dtype='float64')
+
+        energy_volume = atoms.get_potential_energy() / num_atoms
+
+        enthalpy[vol] = J_to_eV(eV_to_J(energy_volume) + pressure*A3_to_m3(distorted.volume*alpha))
+
+        alpha = alpha - (max_alpha - min_alpha)/number_volumes
+
+    new_alpha_range = np.linspace(max_alpha, min_alpha, number_volumes*20)
+
+    interpol = interp1d(alpha_array, enthalpy, kind='quadratic', fill_value='extrapolate')
+    enthalpy_interpolated = interpol(new_alpha_range)
+
+    alpha_min_enthalpy = new_alpha_range[np.argmin(enthalpy_interpolated)]
+
+    pressurized_structure = deepcopy(relaxed_structure)
+    pressurized_structure.scale_lattice(pressurized_structure.volume*alpha_min_enthalpy)
+
+    pressurized_structure.to(filename=pressure_struc_path, fmt=type_output)
+
+    atoms = ase_adaptor_object.get_atoms(pressurized_structure)
+    atoms.calc = module(model=mace_model, device=mace_device, default_dtype='float64')
+
+
+    if alpha_min_enthalpy != new_alpha_range[-1]:
+        final_energy = atoms.get_potential_energy() / num_atoms
         final_enthalpy = final_energy + J_to_eV((pressure*alpha_min_enthalpy*relaxed_structure.volume*(1e-30))/num_atoms)
     else:
         final_energy = 0
@@ -567,9 +707,9 @@ def structure_distortion(file, max_displacement, type_output, final_path):
     return
 
 
-def relax_structure_gen(relax_object, dist_struc_path, relax_struc_path, max_steps, text_output, type_output):
+def relax_structure_gen_M3GNet(relax_object, dist_struc_path, relax_struc_path, max_steps, text_output, type_output):
     """
-    Relax an structure and get the energy for the generations part of the main code
+    Relax an structure and get the energy for the generations part of the main code (for M3GNet)
 
     Inputs:
         relax_object: the relaxer object by m3gnet module
@@ -592,6 +732,45 @@ def relax_structure_gen(relax_object, dist_struc_path, relax_struc_path, max_ste
     final_structure.to(filename=relax_struc_path, fmt=type_output)
 
     final_energy = float(relaxed_structure['trajectory'].energies[-1]/len(crystal_structure))
+
+
+    return final_energy
+
+
+def relax_structure_gen_MACE(dist_struc_path, relax_struc_path, max_steps, text_output, type_output, module, model_name, device, fmax):
+    """
+    Relax an structure and get the energy for the generations part of the main code (for MACE)
+
+    Inputs:
+        dist_struc_path: the path of the distorted structure
+        relax_struc_path: the path of the relaxed structure
+        max_steps: number maximum of ionic steps
+        text_output: to decide if we want output text in terminal or not
+        type_output: the crystal type of output file, poscar or cif
+        module: MACE module
+        model_name: name of the MACE model to use, 'large' if default, another name or path if retrained
+        device: device to use MACE (cpu or cuda)
+        fmax: maximum force
+    """
+
+    crystal_structure = Structure.from_file(dist_struc_path)
+
+    ase_adaptor = AseAtomsAdaptor()
+    atoms = ase_adaptor.get_atoms(crystal_structure)
+
+    atoms.calc = module(model=model_name, device=device, default_dtype='float64')
+
+    atoms_filter = FrechetCellFilter(atoms) # allow lattice parameters to change
+
+    dyn = FIRE(atoms_filter) # optimization with FIRE, other options like BFGS are also available
+    dyn.run(fmax=fmax, steps=max_steps)
+
+    relaxed_atoms = atoms_filter.atoms
+    relaxed_structure = AseAtomsAdaptor().get_structure(relaxed_atoms)
+
+    relaxed_structure.to(filename=relax_struc_path, fmt=type_output)
+
+    final_energy = relaxed_atoms.get_potential_energy() / len(relaxed_atoms)
 
 
     return final_energy
@@ -868,40 +1047,44 @@ def plot_exp_tuned(prominance, width, exp_path):
     return
 
 
-def relaxer_function(retrained, retrained_path):
+def relaxer_function_M3GNet(retrained, retrained_path, module, module_object):
     """
-    Calls M3GNet relaxer function
+    Calls M3GNet relaxer function (just for M3GNet)
 
     Inputs:
         retreined: boolean, True if the user provides a retrained model path
         retreined_path: path to the retreined model for M3GNet
+        module: M3GNet module
+        module_object: M3GNet Relaxer
     """
 
     if retrained == False:
-        pot = matgl.load_model("M3GNet-MP-2021.2.8-PES")
+        pot = module.load_model("M3GNet-MP-2021.2.8-PES")
     else:
-        pot = matgl.load_model(retrained_path)
+        pot = module.load_model(retrained_path)
 
-    relaxer = Relaxer(potential=pot)
+    relaxer = module_object(potential=pot)
 
     return relaxer
 
 
-def energy_function(retrained, retrained_path):
+def energy_function_M3GNet(retrained, retrained_path, module, module_object):
     """
     Calls M3GNet single point calculation function
 
     Inputs:
         retreined: boolean, True if the user provides a retrained model path
         retreined_path: path to the retreined model for M3GNet
+        module: M3GNet module
+        module_object: M3GNet PESCalculator
     """
 
     if retrained == False:
-        pot = matgl.load_model("M3GNet-MP-2021.2.8-PES")
+        pot = module.load_model("M3GNet-MP-2021.2.8-PES")
     else:
-        pot = matgl.load_model(retrained_path)
+        pot = module.load_model(retrained_path)
 
-    calc = PESCalculator(potential=pot)
+    calc = module_object(potential=pot)
 
     return calc
 
@@ -930,6 +1113,15 @@ def csp_study(inputs):
     retrain_path = inputs.retrain_path
     restricted = inputs.restricted_phases
     restricted_list = inputs.restricted_list
+    model = inputs.model
+    device_mace = inputs.device_mace
+    fmax_mace = inputs.fmax_mace
+    mace_model = inputs.mace_model
+
+    if model == 'MACE':
+        mace_mp = import_MLIP(model)
+    elif model == 'M3GNet':
+        matgl, Relaxer, PESCalculator = import_MLIP(model)
 
 
     ### Save the log file
@@ -997,7 +1189,8 @@ def csp_study(inputs):
 
     
     #### Relax the first structures
-    relaxer = relaxer_function(retrained=retrain, retrained_path=retrain_path)
+    if model == 'M3GNet':
+        relaxer = relaxer_function_M3GNet(retrained=retrain, retrained_path=retrain_path, module=matgl, module_object=Relaxer)
 
     dir_path = 'structure_files/generated_structures/'
 
@@ -1033,8 +1226,13 @@ def csp_study(inputs):
                 struc_name = 'structure-' + "{:06d}".format(num_struc + 1) + '.cif'
             relax_struc(struc_name)
 
-        relax_energy, count = relax_structure(relaxer, initial_path, relaxed_path, max_ionic_steps, 
-                                            print_terminal_outputs, structure_file, count)
+        if model == 'M3GNet':
+            relax_energy, count = relax_structure_M3GNet(relaxer, initial_path, relaxed_path, max_ionic_steps, 
+                                                 print_terminal_outputs, structure_file, count)
+        elif model == 'MACE':
+            relax_energy, count = relax_structure_MACE(initial_path, relaxed_path, max_ionic_steps, 
+                                                 print_terminal_outputs, structure_file, count, mace_mp, mace_model,
+                                                 device_mace, fmax_mace)
         
         phase_energy_array[count - 1, 0] = int(count)
         phase_energy_array[count - 1, 1] = relax_energy
@@ -1107,6 +1305,14 @@ def pressure_computations(inputs):
     struc_path = inputs.struc_path
     retrain = inputs.retrain
     retrain_path = inputs.retrain_path
+    model = inputs.model
+    device_mace = inputs.device_mace
+    mace_model = inputs.mace_model
+
+    if model == 'MACE':
+        mace_mp = import_MLIP(model)
+    elif model == 'M3GNet':
+        matgl, Relaxer, PESCalculator = import_MLIP(model)
 
     ### Save the log file
         
@@ -1156,7 +1362,9 @@ def pressure_computations(inputs):
     if print_terminal_outputs == True:
         press_ini()
 
-    calc = energy_function(retrained=retrain, retrained_path=retrain_path)
+    if model == 'M3GNet':
+        calc = energy_function_M3GNet(retrained=retrain, retrained_path=retrain_path, module=matgl, module_object=PESCalculator)
+
     ase_adaptor = AseAtomsAdaptor()
 
     for num_struc in range(num_structures - 2):
@@ -1174,8 +1382,12 @@ def pressure_computations(inputs):
                 struc_name = 'structure-' + "{:06d}".format(num_struc + 1) + '.cif'
             press_struc(struc_name)
 
-        pressure_enthalpy, pressure_energy, count, alpha = pressure_structure(calc, ase_adaptor, relaxed_path, pressure_path, pressure, num_volumes, minimum_volume,
-                                                           maximum_volume, print_terminal_outputs, structure_file, count)
+        if model == 'M3GNet':
+            pressure_enthalpy, pressure_energy, count, alpha = pressure_structure_M3GNet(calc, ase_adaptor, relaxed_path, pressure_path, pressure, num_volumes, 
+                                                                                  minimum_volume,maximum_volume, print_terminal_outputs, structure_file, count)
+        elif model == 'MACE':
+            pressure_enthalpy, pressure_energy, count, alpha = pressure_structure_MACE(ase_adaptor, relaxed_path, pressure_path, pressure, num_volumes, 
+                                                                                  minimum_volume,maximum_volume, print_terminal_outputs, structure_file, count, mace_mp, device_mace, mace_model)
             
         pressure_energy_array[count - 1, 0] = int(count)
         pressure_energy_array[count - 1, 1] = pressure_energy
@@ -1257,6 +1469,15 @@ def generations_loop(inputs):
     struc_path = inputs.struc_path
     retrain = inputs.retrain
     retrain_path = inputs.retrain_path
+    model = inputs.model
+    device_mace = inputs.device_mace
+    fmax_mace = inputs.fmax_mace
+    mace_model = inputs.mace_model
+
+    if model == 'MACE':
+        mace_mp = import_MLIP(model)
+    elif model == 'M3GNet':
+        matgl, Relaxer, PESCalculator = import_MLIP(model)
 
     ### Save the log file
         
@@ -1300,7 +1521,8 @@ def generations_loop(inputs):
         shutil.rmtree('structure_files/generations/')
     os.mkdir('structure_files/generations/')
 
-    relaxer = relaxer_function(retrained=retrain, retrained_path=retrain_path)
+    if model == 'M3GNet':
+        relaxer = relaxer_function_M3GNet(retrained=retrain, retrained_path=retrain_path, module=matgl, module_object=Relaxer)
 
     if print_terminal_outputs == True:
         gen_ini()
@@ -1380,8 +1602,12 @@ def generations_loop(inputs):
             if print_terminal_outputs == True:
                 relax_struc(struc_file)
 
-            relaxed_energy = relax_structure_gen(relaxer, path_dist_file, path_relax_file, max_ionic_steps,
-                                                    print_terminal_outputs, structure_file)
+            if model == 'M3GNet':
+                relaxed_energy = relax_structure_gen_M3GNet(relaxer, path_dist_file, path_relax_file, max_ionic_steps,
+                                                       print_terminal_outputs, structure_file)
+            elif model == 'MACE':
+                relaxed_energy = relax_structure_gen_MACE(path_dist_file, path_relax_file, max_ionic_steps,
+                                                       print_terminal_outputs, structure_file, mace_mp, mace_model, device_mace, fmax_mace)
                 
             write_in_file_gen(file_energy, path_relax_file, struc_file, relaxed_energy, 
                                 prec_group_det, structure_file, count)

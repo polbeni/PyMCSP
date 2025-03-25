@@ -51,7 +51,11 @@ class InputsPyMCSP:
         'width_exp': 5.0,
         'prop_vol': 0.05,
         'num_vols': 20,
-        'coef_quad': 0.01
+        'coef_quad': 0.01,
+        'model': 'MACE',
+        'device_mace': 'cpu',
+        'fmax_mace': 0.05,
+        'mace_model': 'large'
     }
 
     def __init__(self, config_file: str = None):

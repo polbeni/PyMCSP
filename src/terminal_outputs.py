@@ -71,6 +71,9 @@ def option_1(inputs):
     print(f'retrain_path            =  {inputs.retrain_path}')
     print(f'restricted_phases       =  {inputs.restricted_phases}')
     print(f'restricted_list         =  {inputs.restricted_list}')
+    print(f'model                   =  {inputs.model}')
+    if inputs.model == 'MACE':
+        print(f'mace_model              =  {inputs.mace_model}')
     print('')
     print('Are they correct? (write yes or no)')
     print('o---------------------------------------------------o')
@@ -101,6 +104,9 @@ def option_2(inputs):
     print(f'struc_path              =  {inputs.struc_path}')
     print(f'retrain                 =  {inputs.retrain}')
     print(f'retrain_path            =  {inputs.retrain_path}')
+    print(f'model                   =  {inputs.model}')
+    if inputs.model == 'MACE':
+        print(f'mace_model              =  {inputs.mace_model}')
     print('')
     print('Are they correct? (write yes or no)')
     print('o---------------------------------------------------o')
@@ -130,6 +136,9 @@ def option_3(inputs):
     print(f'struc_path              =  {inputs.struc_path}')
     print(f'retrain                 =  {inputs.retrain}')
     print(f'retrain_path            =  {inputs.retrain_path}')
+    print(f'model                   =  {inputs.model}')
+    if inputs.model == 'MACE':
+        print(f'mace_model              =  {inputs.mace_model}')
     print('')
     print('Are they correct? (write yes or no)')
     print('o---------------------------------------------------o')
