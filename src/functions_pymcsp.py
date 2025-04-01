@@ -26,6 +26,7 @@ from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from pymatgen.io.ase import AseAtomsAdaptor
 
 from pyxtal import pyxtal
+from pyxtal.molecule import pyxtal_molecule
 
 from ase.optimize import BFGS, FIRE
 from ase.io.trajectory           import Trajectory
@@ -73,7 +74,22 @@ def import_MLIP(model):
         return matgl, Relaxer, PESCalculator
 
 
-def generate_phases(stoi_dict, phase_number, dim, restricted, restricted_list, atoms_arr, text_output, type_output):
+def generate_atom_xyz(atom_type):
+    """
+    It generates a xyz from a given atom in order to can use the molecular functionality of PyXtal
+
+    Inputs:
+        atom_type: atom symbol
+    """
+
+    xyz_file = open(f'{atom_type}.xyz', 'w')
+    xyz_file.write('1\n')
+    xyz_file.write(f'{atom_type} atom\n')
+    xyz_file.write(f'{atom_type}   0.0   0.0   0.0')
+    xyz_file.close()
+
+
+def generate_phases(stoi_dict, phase_number, dim, restricted, restricted_list, atoms_arr, text_output, type_output, molecular, molecular_list):
     """
     Generate the initial phases
 
@@ -85,6 +101,8 @@ def generate_phases(stoi_dict, phase_number, dim, restricted, restricted_list, a
         atoms_arr: array with atoms
         text_output: to decide if we want output text in terminal or not
         type_output: the crystal type of output file, poscar or cif
+        molecular: True if it is a molecular crystal
+        molecular_list: if molecular == True it is the equivalent to atoms_arr
     """
 
     num_groups = {
@@ -92,7 +110,19 @@ def generate_phases(stoi_dict, phase_number, dim, restricted, restricted_list, a
         3: 230
     }
 
-    struc = pyxtal()
+    if molecular == True:
+        atoms_arr = []
+        for element in molecular_list:
+            if element.endswith('.xyz'):
+                atoms_arr.append(pyxtal_molecule(element))
+            else:
+                generate_atom_xyz(element)
+                atoms_arr.append(pyxtal_molecule(element + '.xyz'))
+
+        struc = pyxtal(molecular=True)
+    else:
+        struc = pyxtal()
+        
 
     for key, value in stoi_dict.items():
         if text_output == True:
@@ -1121,6 +1151,8 @@ def csp_study(inputs):
     fmax_mace = inputs.fmax_mace
     mace_model = inputs.mace_model
     precision_relax_mace = inputs.precision_relax_mace
+    molecular_crystal = inputs.molecular_crystal
+    atoms_molecular_crystal = inputs.atoms_molecular_crystal
 
     if model == 'MACE':
         mace_mp = import_MLIP(model)
@@ -1181,10 +1213,15 @@ def csp_study(inputs):
     os.mkdir('structure_files')
     os.mkdir('structure_files/generated_structures/')
 
+    ######### IMPORTANT: CHANGE THIS FOR MOLECULAR CRYSTALS #########
+    if molecular_crystal == True:
+        stoichiometry_dict = {'stoichiometry_1': stoichiometry}
+
     num_phase = 1
     for num_phase_group in range(num_same_phase):
         total_num_phase = generate_phases(stoichiometry_dict, num_phase, dimension, restricted,
-                                        restricted_list, atoms, print_terminal_outputs, structure_file)
+                                         restricted_list, atoms, print_terminal_outputs, structure_file,
+                                         molecular=molecular_crystal, molecular_list=atoms_molecular_crystal)
         
         num_phase = total_num_phase
 
